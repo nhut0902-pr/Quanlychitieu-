@@ -45,6 +45,10 @@
         </nav>
     </div>
 
+    <!-- Hidden elements for Picture-in-Picture -->
+    <video id="pip-video" style="display:none" autoplay muted playsinline></video>
+    <canvas id="pip-canvas" width="300" height="300" style="display:none"></canvas>
+
     <!-- Templates -->
     <template id="trips-template">
         <section id="trips-section">
@@ -231,6 +235,7 @@
             </div>
             <div id="map"></div>
             <div class="map-controls">
+                <button id="pip-btn" onclick="togglePiP()" style="background:#673ab7; width:100%; margin-bottom:10px;" data-i18n="pip_btn">Hiện Cửa Sổ Nổi (Bản Đồ & Tốc Độ)</button>
                 <button onclick="markCurrentLocation('start')" style="background:#28a745;" data-i18n="mark_start">Điểm Đi</button>
                 <button onclick="markCurrentLocation('dest')" style="background:#007bff;" data-i18n="mark_dest">Điểm Đến</button>
                 <button onclick="markCurrentLocation('return')" style="background:#dc3545;" data-i18n="mark_return">Điểm Về</button>

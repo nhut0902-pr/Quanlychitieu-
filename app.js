@@ -4,6 +4,7 @@ let watchId = null;
 let currentKmh = 0;
 let currentLocation = null;
 let selectedPhotos = [];
+let pipInterval = null;
 
 const translations = {
     vi: {
@@ -50,6 +51,8 @@ const translations = {
         mark_return: "Điểm Về",
         recenter_btn: "Tâm Vị Trí Hiện Tại",
         current_speed: "Tốc độ hiện tại",
+        pip_btn: "Bật Cửa Sổ Nổi (PiP)",
+        pip_error: "Trình duyệt không hỗ trợ cửa sổ nổi (PiP).",
         no_diary: "Không tìm thấy nhật ký.",
         delete_confirm: "Bạn có chắc muốn xóa?",
         copy_success: "Đã copy tọa độ: ",
@@ -114,6 +117,8 @@ const translations = {
         mark_return: "Return Point",
         recenter_btn: "Center on Me",
         current_speed: "Current Speed",
+        pip_btn: "Floating Window (PiP)",
+        pip_error: "Browser does not support Picture-in-Picture.",
         no_diary: "No diaries found.",
         delete_confirm: "Are you sure you want to delete?",
         copy_success: "Coordinates copied: ",
@@ -1155,6 +1160,92 @@ function addMarkerToMap(lat, lng, type) {
     const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
     markers[type] = L.marker([lat, lng]).addTo(map)
         .bindPopup(`${labels[type]}<br>Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+}
+
+async function togglePiP() {
+    const video = document.getElementById('pip-video');
+    if (!video) return;
+
+    if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+    } else {
+        if (!('pictureInPictureEnabled' in document)) {
+            alert(translations[currentLang].pip_error);
+            return;
+        }
+
+        const canvas = document.getElementById('pip-canvas');
+        const stream = canvas.captureStream(30);
+        video.srcObject = stream;
+
+        video.onloadedmetadata = async () => {
+            try {
+                await video.play();
+                await video.requestPictureInPicture();
+                startPipRendering();
+            } catch (err) {
+                console.error("PiP Error:", err);
+            }
+        };
+    }
+}
+
+function startPipRendering() {
+    if (pipInterval) clearInterval(pipInterval);
+    const canvas = document.getElementById('pip-canvas');
+    const ctx = canvas.getContext('2d');
+
+    pipInterval = setInterval(() => {
+        if (!document.pictureInPictureElement) {
+            clearInterval(pipInterval);
+            pipInterval = null;
+            return;
+        }
+
+        // Background
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Speedometer
+        ctx.fillStyle = '#0f0';
+        ctx.font = 'bold 80px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(currentKmh, 150, 120);
+        ctx.font = '20px monospace';
+        ctx.fillText('km/h', 150, 150);
+
+        // Simplified Map info
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px sans-serif';
+        if (currentLocation) {
+            ctx.fillText(`GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
+        }
+
+        // Draw a small circle for current position relative to Start/Dest
+        const trip = getCurrentTrip();
+        if (trip && trip.markers && trip.markers.start && trip.markers.dest) {
+             ctx.strokeStyle = '#3f51b5';
+             ctx.lineWidth = 2;
+             ctx.beginPath();
+             ctx.moveTo(50, 240);
+             ctx.lineTo(250, 240);
+             ctx.stroke();
+
+             // Start marker
+             ctx.fillStyle = '#28a745';
+             ctx.beginPath(); ctx.arc(50, 240, 5, 0, Math.PI*2); ctx.fill();
+
+             // Dest marker
+             ctx.fillStyle = '#007bff';
+             ctx.beginPath(); ctx.arc(250, 240, 5, 0, Math.PI*2); ctx.fill();
+
+             // Current Position estimate (very rough linear)
+             // This is just a visual indicator for the PiP window
+             ctx.fillStyle = '#f00';
+             ctx.beginPath(); ctx.arc(150, 240, 7, 0, Math.PI*2); ctx.fill();
+        }
+
+    }, 100);
 }
 
 function updateMapLines() {
