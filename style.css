@@ -135,7 +135,7 @@ button:active {
 #nav-diary::before { content: "📖"; }
 #nav-spending::before { content: "💰"; }
 #nav-map::before { content: "📍"; }
-#nav-checklist::before { content: "✅"; }
+#nav-trips::before { content: "🚗"; }
 #nav-extra::before { content: "⚙️"; }
 
 /* Spending Page */

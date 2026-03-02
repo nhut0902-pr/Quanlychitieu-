@@ -25,15 +25,28 @@
             <button onclick="showSection('diary')" id="nav-diary">Nhật Ký</button>
             <button onclick="showSection('spending')" id="nav-spending">Chi Tiêu</button>
             <button onclick="showSection('map')" id="nav-map">Bản Đồ</button>
-            <button onclick="showSection('checklist')" id="nav-checklist">Danh Sách</button>
+            <button onclick="showSection('trips')" id="nav-trips">Chuyến Đi</button>
             <button onclick="showSection('extra')" id="nav-extra">Tiện Ích</button>
         </nav>
     </div>
 
     <!-- Templates -->
+    <template id="trips-template">
+        <section id="trips-section">
+            <h2>Quản Lý Chuyến Đi</h2>
+            <form id="trip-form">
+                <input type="text" id="trip-name" placeholder="Tên chuyến đi mới (vd: Đà Lạt 2024)" required>
+                <button type="submit">Tạo Chuyến Đi Mới</button>
+            </form>
+            <div id="trip-list" style="margin-top: 20px;">
+                <!-- Trips will be listed here -->
+            </div>
+        </section>
+    </template>
+
     <template id="diary-template">
         <section id="diary-section">
-            <h2>Nhật Ký Chuyến Đi</h2>
+            <h2 id="current-trip-title-diary">Nhật Ký Chuyến Đi</h2>
             <form id="diary-form">
                 <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
                 <input type="text" id="end-point" placeholder="Điểm đến" required>
@@ -42,6 +55,13 @@
                     <button type="button" onclick="getDiaryLocation()" style="width:50px;" title="Lưu vị trí GPS">📍</button>
                 </div>
                 <input type="hidden" id="diary-coords">
+                <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                    <label style="flex:1; background:#eee; padding:10px; border-radius:8px; text-align:center; cursor:pointer;">
+                        📷 Thêm Ảnh
+                        <input type="file" id="diary-photos" accept="image/*" multiple style="display:none;" onchange="handlePhotoSelect(event)">
+                    </label>
+                </div>
+                <div id="photo-preview" style="display:flex; gap:5px; margin-bottom:10px; overflow-x:auto;"></div>
                 <textarea id="food-place" placeholder="Ăn gì ở đâu?"></textarea>
                 <div style="display:flex; gap:10px; align-items:center;">
                     <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)" style="flex:1;">
@@ -64,7 +84,14 @@
 
     <template id="spending-template">
         <section id="spending-section">
-            <h2>Quản Lý Chi Tiêu</h2>
+            <h2 id="current-trip-title-spending">Quản Lý Chi Tiêu</h2>
+            <div id="spending-analytics" class="extra-group" style="margin-bottom: 20px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
+                <h3 style="margin-top:0">Phân Tích Chi Tiêu</h3>
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    <canvas id="spending-chart" width="200" height="200" style="max-width: 100%;"></canvas>
+                    <div id="chart-legend" style="margin-top: 10px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px;"></div>
+                </div>
+            </div>
             <div class="budget-container">
                 <label for="budget-limit">Ngân sách:</label>
                 <input type="number" id="budget-limit" placeholder="Đặt ngân sách" value="1000000">
@@ -90,24 +117,17 @@
         </section>
     </template>
 
-    <template id="checklist-template">
-        <section id="checklist-section">
-            <h2>Danh Sách Chuẩn Bị</h2>
-            <form id="checklist-form" style="flex-direction:row;">
-                <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
-                <button type="submit">Thêm</button>
-            </form>
-            <ul id="checklist-list"></ul>
-        </section>
-    </template>
-
     <template id="extra-template">
         <section id="extra-section">
-            <h2>Tiện Ích & Cài Đặt</h2>
+            <h2 id="current-trip-title-extra">Tiện Ích</h2>
 
             <div class="extra-group">
-                <h3>Thống Kê Chi Tiêu</h3>
-                <div id="stats-content"></div>
+                <h3>Danh Sách Chuẩn Bị</h3>
+                <form id="checklist-form" style="display:flex; gap:5px; margin-bottom:10px;">
+                    <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
+                    <button type="submit" style="width:auto; padding:0 15px;">Thêm</button>
+                </form>
+                <ul id="checklist-list"></ul>
             </div>
 
             <hr>
@@ -121,8 +141,9 @@
             <hr>
 
             <div class="extra-group">
-                <h3>Dữ Liệu</h3>
+                <h3>Dữ Liệu & Báo Cáo</h3>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <button onclick="generateTripReport()" style="background:#4CAF50; grid-column: span 2;">Xuất Báo Cáo Tổng Kết (PDF)</button>
                     <button onclick="exportData()" style="background:#2196F3;">Xuất Dữ Liệu (JSON)</button>
                     <button onclick="document.getElementById('import-file').click()" style="background:#ff9800;">Nhập Dữ Liệu</button>
                 </div>
@@ -134,7 +155,7 @@
 
     <template id="map-template">
         <section id="map-section">
-            <h2>Bản Đồ Hành Trình</h2>
+            <h2 id="current-trip-title-map">Bản Đồ Hành Trình</h2>
             <div id="map"></div>
             <div class="map-controls">
                 <button onclick="markCurrentLocation('start')" style="background:#28a745;">Điểm Đi</button>

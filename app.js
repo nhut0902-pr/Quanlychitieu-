@@ -1,6 +1,59 @@
 let currentSection = 'diary';
 let map, markers = {}, polylines = {};
 let watchId = null;
+let selectedPhotos = [];
+
+// IndexedDB Setup for Photos
+const DB_NAME = 'TravelDiaryDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'photos';
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            }
+        };
+        request.onsuccess = (e) => resolve(e.target.result);
+        request.onerror = (e) => reject(e.target.error);
+    });
+}
+
+async function savePhoto(photoData) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(photoData);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getPhotos(entryId) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(entryId);
+        request.onsuccess = () => resolve(request.result ? request.result.data : []);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function deletePhotos(entryId) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(entryId);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+    });
+}
 
 function escapeHTML(str) {
     if (!str) return "";
@@ -15,27 +68,80 @@ function escapeHTML(str) {
     });
 }
 
-// Fix Leaflet default icon issue
-if (typeof L !== 'undefined' && L.Icon) {
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    });
+// Multi-trip logic
+let trips = JSON.parse(localStorage.getItem('trips')) || [];
+let currentTripId = localStorage.getItem('currentTripId') || null;
+
+function saveTrips() {
+    localStorage.setItem('trips', JSON.stringify(trips));
 }
 
-// Data Storage Initialization
-let diaries = JSON.parse(localStorage.getItem('diaries')) || [];
-let spendings = JSON.parse(localStorage.getItem('spendings')) || [];
-let budget = parseFloat(localStorage.getItem('budget')) || 1000000;
-let savedMarkers = JSON.parse(localStorage.getItem('markers')) || {};
-let checklist = JSON.parse(localStorage.getItem('checklist')) || [];
-let emergencyInfo = localStorage.getItem('emergencyInfo') || '';
+function getCurrentTrip() {
+    return trips.find(t => t.id == currentTripId) || null;
+}
+
+// Data Variables (Load based on current trip)
+let diaries = [];
+let spendings = [];
+let budget = 1000000;
+let savedMarkers = {};
+let checklist = [];
+let emergencyInfo = '';
 let isDarkMode = localStorage.getItem('darkMode') === 'true';
+
+function loadTripData() {
+    const trip = getCurrentTrip();
+    if (trip) {
+        diaries = trip.diaries || [];
+        spendings = trip.spendings || [];
+        budget = trip.budget || 1000000;
+        savedMarkers = trip.markers || {};
+        checklist = trip.checklist || [];
+        emergencyInfo = trip.emergencyInfo || '';
+    } else {
+        diaries = []; spendings = []; budget = 1000000; savedMarkers = {}; checklist = []; emergencyInfo = '';
+    }
+}
+
+function syncTripData() {
+    if (!currentTripId) return;
+    const index = trips.findIndex(t => t.id == currentTripId);
+    if (index !== -1) {
+        trips[index].diaries = diaries;
+        trips[index].spendings = spendings;
+        trips[index].budget = budget;
+        trips[index].markers = savedMarkers;
+        trips[index].checklist = checklist;
+        trips[index].emergencyInfo = emergencyInfo;
+        saveTrips();
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     if (isDarkMode) document.body.classList.add('dark-mode');
+
+    // Auto-create first trip if none exists
+    if (trips.length === 0) {
+        const firstTrip = {
+            id: Date.now(),
+            name: 'Chuyến đi mặc định',
+            diaries: JSON.parse(localStorage.getItem('diaries')) || [],
+            spendings: JSON.parse(localStorage.getItem('spendings')) || [],
+            budget: parseFloat(localStorage.getItem('budget')) || 1000000,
+            markers: JSON.parse(localStorage.getItem('markers')) || {},
+            checklist: JSON.parse(localStorage.getItem('checklist')) || [],
+            emergencyInfo: localStorage.getItem('emergencyInfo') || ''
+        };
+        trips.push(firstTrip);
+        currentTripId = firstTrip.id;
+        localStorage.setItem('currentTripId', currentTripId);
+        saveTrips();
+    } else if (!currentTripId) {
+        currentTripId = trips[0].id;
+        localStorage.setItem('currentTripId', currentTripId);
+    }
+
+    loadTripData();
     showSection('diary');
 });
 
@@ -50,15 +156,26 @@ function showSection(section) {
     currentSection = section;
     const content = document.getElementById('content');
     const template = document.getElementById(`${section}-template`);
+    if (!template) return;
     content.innerHTML = '';
     content.appendChild(template.content.cloneNode(true));
 
     // Update Nav UI
     document.querySelectorAll('.bottom-nav button').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`nav-${section}`).classList.add('active');
+    const navBtn = document.getElementById(`nav-${section}`);
+    if (navBtn) navBtn.classList.add('active');
+
+    // Update Trip Titles
+    const trip = getCurrentTrip();
+    const titleElements = ['diary', 'spending', 'extra', 'map'];
+    titleElements.forEach(elId => {
+        const el = document.getElementById(`current-trip-title-${elId}`);
+        if (el && trip) el.innerText = trip.name;
+    });
 
     if (section === 'diary') initDiary();
     if (section === 'spending') initSpending();
+    if (section === 'trips') initTrips();
     if (section === 'map') {
         initMap();
         setTimeout(() => map && map.invalidateSize(), 200);
@@ -67,31 +184,122 @@ function showSection(section) {
         watchId = null;
     }
 
-    if (section === 'checklist') initChecklist();
     if (section === 'extra') initExtra();
+}
+
+// --- Trips Logic ---
+function initTrips() {
+    renderTrips();
+    document.getElementById('trip-form').onsubmit = (e) => {
+        e.preventDefault();
+        const name = document.getElementById('trip-name').value;
+        const newTrip = {
+            id: Date.now(),
+            name: name,
+            diaries: [],
+            spendings: [],
+            budget: 1000000,
+            markers: {},
+            checklist: [],
+            emergencyInfo: ''
+        };
+        trips.push(newTrip);
+        saveTrips();
+        renderTrips();
+        e.target.reset();
+    };
+}
+
+function renderTrips() {
+    const list = document.getElementById('trip-list');
+    list.innerHTML = trips.map(t => `
+        <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 5px solid ${t.id == currentTripId ? '#4CAF50' : '#ccc'}">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div onclick="switchTrip(${t.id})" style="flex:1;">
+                    <strong>${escapeHTML(t.name)}</strong><br>
+                    <small>${t.diaries.length} mục nhật ký | ${t.spendings.length} khoản chi</small>
+                </div>
+                <div>
+                    <button onclick="deleteTrip(${t.id})" style="background:none; color:red; padding:5px;">Xóa</button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function switchTrip(id) {
+    currentTripId = id;
+    localStorage.setItem('currentTripId', currentTripId);
+    loadTripData();
+    showSection('diary');
+}
+
+function deleteTrip(id) {
+    if (trips.length <= 1) return alert("Không thể xóa chuyến đi cuối cùng.");
+    if (confirm('Xóa toàn bộ dữ liệu của chuyến đi này?')) {
+        trips = trips.filter(t => t.id != id);
+        if (currentTripId == id) {
+            currentTripId = trips[0].id;
+            localStorage.setItem('currentTripId', currentTripId);
+        }
+        saveTrips();
+        loadTripData();
+        renderTrips();
+    }
 }
 
 // --- Diary Logic ---
 function initDiary() {
+    selectedPhotos = [];
     renderDiaries();
-    document.getElementById('diary-form').onsubmit = (e) => {
+    document.getElementById('diary-form').onsubmit = async (e) => {
         e.preventDefault();
+        const entryId = Date.now();
         const entry = {
-            id: Date.now(),
+            id: entryId,
             start: document.getElementById('start-point').value,
             end: document.getElementById('end-point').value,
             time: document.getElementById('departure-time').value,
             food: document.getElementById('food-place').value,
             cost: document.getElementById('trip-cost').value,
             rating: document.getElementById('diary-rating').value,
-            coords: document.getElementById('diary-coords').value
+            coords: document.getElementById('diary-coords').value,
+            hasPhotos: selectedPhotos.length > 0
         };
+
+        if (selectedPhotos.length > 0) {
+            await savePhoto({ id: entryId, data: selectedPhotos });
+        }
+
         diaries.push(entry);
-        localStorage.setItem('diaries', JSON.stringify(diaries));
+        syncTripData();
         renderDiaries();
         e.target.reset();
         document.getElementById('diary-coords').value = '';
+        document.getElementById('photo-preview').innerHTML = '';
+        selectedPhotos = [];
     };
+}
+
+function handlePhotoSelect(e) {
+    const files = Array.from(e.target.files).slice(0, 2);
+    const preview = document.getElementById('photo-preview');
+    preview.innerHTML = '';
+    selectedPhotos = [];
+
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const base64 = event.target.result;
+            selectedPhotos.push(base64);
+            const img = document.createElement('img');
+            img.src = base64;
+            img.style.height = '60px';
+            img.style.borderRadius = '4px';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
 function getDiaryLocation() {
@@ -102,7 +310,7 @@ function getDiaryLocation() {
     }, () => alert("Lỗi lấy vị trí"));
 }
 
-function renderDiaries() {
+async function renderDiaries() {
     const list = document.getElementById('diary-list');
     const searchTerm = document.getElementById('diary-search')?.value.toLowerCase() || '';
 
@@ -117,7 +325,19 @@ function renderDiaries() {
         return;
     }
 
-    list.innerHTML = filtered.slice().reverse().map(d => {
+    list.innerHTML = '';
+    for (const d of filtered.slice().reverse()) {
+        const item = document.createElement('div');
+        item.className = 'diary-item';
+
+        let photosHtml = '';
+        if (d.hasPhotos) {
+            const photos = await getPhotos(d.id);
+            photosHtml = `<div style="display:flex; gap:5px; margin-top:8px; overflow-x:auto;">
+                ${photos.map(p => `<img src="${p}" style="height:80px; border-radius:4px;" onclick="viewFullImage('${p}')">`).join('')}
+            </div>`;
+        }
+
         const coordsDisplay = d.coords ? `
             <div style="font-size:11px; color:#666; margin-top:5px; background:#f9f9f9; padding:5px; border-radius:4px;">
                 📍 Tọa độ: ${d.coords}
@@ -126,8 +346,7 @@ function renderDiaries() {
             </div>
         ` : '';
 
-        return `
-        <div class="diary-item">
+        item.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
                     <strong>${escapeHTML(d.start)} ➔ ${escapeHTML(d.end)}</strong> ${'⭐'.repeat(d.rating)}<br>
@@ -137,15 +356,32 @@ function renderDiaries() {
             </div>
             <div style="margin-top:8px; border-top:1px dashed #eee; padding-top:8px;">
                 <em>🍴 ${escapeHTML(d.food) || 'Không ghi chú'}</em><br>
+                ${photosHtml}
                 ${coordsDisplay}
                 <div style="display:flex; justify-content:space-between; margin-top:5px;">
                     <span style="color:#e91e63; font-weight:bold;">💰 ${Number(d.cost || 0).toLocaleString()}đ</span>
                     ${d.coords ? `<button onclick="showOnMap(${d.coords})" style="padding:2px 5px; font-size:10px;">📍 Xem bản đồ</button>` : ''}
                 </div>
             </div>
-        </div>
         `;
-    }).join('');
+        list.appendChild(item);
+    }
+}
+
+function viewFullImage(src) {
+    const viewer = document.createElement('div');
+    viewer.style.position = 'fixed';
+    viewer.style.top = 0; viewer.style.left = 0; viewer.style.width = '100%'; viewer.style.height = '100%';
+    viewer.style.backgroundColor = 'rgba(0,0,0,0.9)';
+    viewer.style.zIndex = 10000;
+    viewer.style.display = 'flex'; viewer.style.alignItems = 'center'; viewer.style.justifyContent = 'center';
+    viewer.onclick = () => viewer.remove();
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.style.maxWidth = '95%'; img.style.maxHeight = '95%';
+    viewer.appendChild(img);
+    document.body.appendChild(viewer);
 }
 
 function copyCoords(coords) {
@@ -165,10 +401,11 @@ function showOnMap(lat, lng) {
     }, 500);
 }
 
-function deleteDiary(id) {
+async function deleteDiary(id) {
     if (confirm('Xóa nhật ký này?')) {
         diaries = diaries.filter(d => d.id !== id);
-        localStorage.setItem('diaries', JSON.stringify(diaries));
+        await deletePhotos(id);
+        syncTripData();
         renderDiaries();
     }
 }
@@ -178,13 +415,15 @@ function initSpending() {
     const budgetInput = document.getElementById('budget-limit');
     budgetInput.value = budget;
     budgetInput.onchange = (e) => {
-        budget = e.target.value;
-        localStorage.setItem('budget', budget);
+        budget = Number(e.target.value);
+        syncTripData();
         updateBudgetUI();
+        drawSpendingChart();
     };
 
     renderSpendings();
     updateBudgetUI();
+    drawSpendingChart();
 
     document.getElementById('spending-form').onsubmit = (e) => {
         e.preventDefault();
@@ -195,9 +434,10 @@ function initSpending() {
             category: document.getElementById('spend-category').value
         };
         spendings.push(item);
-        localStorage.setItem('spendings', JSON.stringify(spendings));
+        syncTripData();
         renderSpendings();
         updateBudgetUI();
+        drawSpendingChart();
         e.target.reset();
     };
 }
@@ -222,9 +462,10 @@ function renderSpendings() {
 function deleteSpending(id) {
     if (confirm('Xóa khoản chi này?')) {
         spendings = spendings.filter(s => s.id !== id);
-        localStorage.setItem('spendings', JSON.stringify(spendings));
+        syncTripData();
         renderSpendings();
         updateBudgetUI();
+        drawSpendingChart();
     }
 }
 
@@ -243,13 +484,55 @@ function updateBudgetUI() {
         info.style.fontWeight = 'bold';
     } else {
         progress.style.backgroundColor = percentage > 90 ? '#ff9800' : '#4CAF50';
-        info.style.color = ''; // Reset to default (handles dark mode better)
+        info.style.color = '';
         info.style.fontWeight = 'normal';
     }
 }
 
-// --- Checklist Logic ---
-function initChecklist() {
+function drawSpendingChart() {
+    const canvas = document.getElementById('spending-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const legend = document.getElementById('chart-legend');
+
+    const cats = ['Ăn uống', 'Di chuyển', 'Lưu trú', 'Khác'];
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
+    const data = cats.map(cat => spendings.filter(s => s.category === cat).reduce((sum, s) => sum + s.amount, 0));
+    const total = data.reduce((a, b) => a + b, 0);
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    legend.innerHTML = '';
+
+    if (total === 0) {
+        ctx.fillStyle = '#ccc';
+        ctx.beginPath();
+        ctx.arc(100, 100, 80, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+    }
+
+    let startAngle = 0;
+    data.forEach((val, i) => {
+        if (val === 0) return;
+        const sliceAngle = (val / total) * 2 * Math.PI;
+
+        ctx.fillStyle = colors[i];
+        ctx.beginPath();
+        ctx.moveTo(100, 100);
+        ctx.arc(100, 100, 80, startAngle, startAngle + sliceAngle);
+        ctx.closePath();
+        ctx.fill();
+
+        startAngle += sliceAngle;
+
+        const p = (val / total * 100).toFixed(1);
+        legend.innerHTML += `<div><span style="display:inline-block; width:12px; height:12px; background:${colors[i]}; margin-right:5px;"></span>${cats[i]}: ${p}%</div>`;
+    });
+}
+
+// --- Extra & Utils Logic ---
+function initExtra() {
+    document.getElementById('emergency-info').value = emergencyInfo;
     renderChecklist();
     document.getElementById('checklist-form').onsubmit = (e) => {
         e.preventDefault();
@@ -259,7 +542,7 @@ function initChecklist() {
             done: false
         };
         checklist.push(item);
-        localStorage.setItem('checklist', JSON.stringify(checklist));
+        syncTripData();
         renderChecklist();
         e.target.reset();
     };
@@ -267,6 +550,7 @@ function initChecklist() {
 
 function renderChecklist() {
     const list = document.getElementById('checklist-list');
+    if (!list) return;
     list.innerHTML = checklist.map(item => `
         <li class="checklist-item ${item.done ? 'done' : ''}">
             <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleCheckItem(${item.id})">
@@ -280,63 +564,71 @@ function toggleCheckItem(id) {
     const item = checklist.find(i => i.id === id);
     if (item) {
         item.done = !item.done;
-        localStorage.setItem('checklist', JSON.stringify(checklist));
+        syncTripData();
         renderChecklist();
     }
 }
 
 function deleteCheckItem(id) {
     checklist = checklist.filter(i => i.id !== id);
-    localStorage.setItem('checklist', JSON.stringify(checklist));
+    syncTripData();
     renderChecklist();
-}
-
-// --- Extra & Utils Logic ---
-function initExtra() {
-    document.getElementById('emergency-info').value = emergencyInfo;
-    renderStats();
 }
 
 function saveEmergencyInfo() {
     emergencyInfo = document.getElementById('emergency-info').value;
-    localStorage.setItem('emergencyInfo', emergencyInfo);
+    syncTripData();
     alert("Đã lưu thông tin khẩn cấp!");
 }
 
-function renderStats() {
-    const container = document.getElementById('stats-content');
-    const cats = ['Ăn uống', 'Di chuyển', 'Lưu trú', 'Khác'];
-    const total = spendings.reduce((sum, s) => sum + s.amount, 0);
+async function generateTripReport() {
+    const trip = getCurrentTrip();
+    if (!trip) return;
 
-    if (total === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#888;">Chưa có dữ liệu chi tiêu.</p>';
-        return;
-    }
+    const reportWindow = window.open('', '_blank');
+    const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
 
-    container.innerHTML = cats.map(cat => {
-        const catTotal = spendings.filter(s => s.category === cat).reduce((sum, s) => sum + s.amount, 0);
-        const percent = total > 0 ? (catTotal / total) * 100 : 0;
-        return `
-            <div class="stat-bar-container">
-                <div class="stat-bar-label">
-                    <span>${escapeHTML(cat)}</span>
-                    <span>${catTotal.toLocaleString()}đ (${percent.toFixed(1)}%)</span>
-                </div>
-                <div class="stat-bar">
-                    <div class="stat-fill" style="width:${percent}%"></div>
-                </div>
+    let diariesHtml = '';
+    for(const d of diaries) {
+        let photosHtml = '';
+        if (d.hasPhotos) {
+            const photos = await getPhotos(d.id);
+            photosHtml = `<div style="display:flex; gap:10px; margin-top:10px;">
+                ${photos.map(p => `<img src="${p}" style="max-height:150px; border-radius:5px;">`).join('')}
+            </div>`;
+        }
+        diariesHtml += `
+            <div style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <strong>${d.start} ➔ ${d.end}</strong> (${new Date(d.time).toLocaleString()})<br>
+                🍴 ${d.food || 'N/A'} | 💰 ${Number(d.cost).toLocaleString()}đ | ${'⭐'.repeat(d.rating)}<br>
+                ${photosHtml}
             </div>
         `;
-    }).join('');
+    }
+
+    reportWindow.document.write(`
+        <html>
+        <head><title>Báo Cáo: ${trip.name}</title>
+        <style>body{font-family:sans-serif; padding:20px; line-height:1.6;} .header{text-align:center; border-bottom:2px solid #4CAF50; padding-bottom:10px;}</style>
+        </head>
+        <body>
+            <div class="header"><h1>TỔNG KẾT CHUYẾN ĐI: ${trip.name}</h1></div>
+            <p><strong>Tổng chi tiêu:</strong> ${totalSpent.toLocaleString()}đ / Ngân sách: ${Number(budget).toLocaleString()}đ</p>
+            <h3>Chi tiết Nhật ký:</h3>
+            ${diariesHtml}
+            <script>window.onload = () => { setTimeout(() => { window.print(); }, 500); };</script>
+        </body>
+        </html>
+    `);
 }
 
 function exportData() {
-    const data = { diaries, spendings, budget, savedMarkers, checklist, emergencyInfo };
+    const data = { trips, currentTripId, version: '2.0' };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `travel_diary_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `travel_all_trips_backup_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
 }
 
@@ -348,12 +640,28 @@ function importData(event) {
         try {
             const data = JSON.parse(e.target.result);
             if (confirm("Nhập dữ liệu sẽ ghi đè dữ liệu hiện tại. Tiếp tục?")) {
-                localStorage.setItem('diaries', JSON.stringify(data.diaries || []));
-                localStorage.setItem('spendings', JSON.stringify(data.spendings || []));
-                localStorage.setItem('budget', data.budget || 1000000);
-                localStorage.setItem('markers', JSON.stringify(data.savedMarkers || {}));
-                localStorage.setItem('checklist', JSON.stringify(data.checklist || []));
-                localStorage.setItem('emergencyInfo', data.emergencyInfo || '');
+                if (data.trips) {
+                    trips = data.trips;
+                    currentTripId = data.currentTripId || trips[0].id;
+                    saveTrips();
+                    localStorage.setItem('currentTripId', currentTripId);
+                } else {
+                    // Legacy support
+                    const legacyTrip = {
+                        id: Date.now(),
+                        name: 'Chuyến đi Nhập về',
+                        diaries: data.diaries || [],
+                        spendings: data.spendings || [],
+                        budget: data.budget || 1000000,
+                        markers: data.savedMarkers || {},
+                        checklist: data.checklist || [],
+                        emergencyInfo: data.emergencyInfo || ''
+                    };
+                    trips.push(legacyTrip);
+                    currentTripId = legacyTrip.id;
+                    saveTrips();
+                    localStorage.setItem('currentTripId', currentTripId);
+                }
                 location.reload();
             }
         } catch (err) {
@@ -364,9 +672,11 @@ function importData(event) {
 }
 
 function clearAllData() {
-    if (confirm("Xóa toàn bộ dữ liệu ứng dụng? Hành động này không thể hoàn tác.")) {
+    if (confirm("Xóa TOÀN BỘ dữ liệu tất cả chuyến đi?")) {
         localStorage.clear();
-        location.reload();
+        // Also clear IndexedDB
+        const req = indexedDB.deleteDatabase(DB_NAME);
+        req.onsuccess = () => location.reload();
     }
 }
 
@@ -383,7 +693,6 @@ function initMap() {
     markers = {};
     polylines = {};
 
-    // Initial center (Saigon) or use first marker
     let initialCenter = [10.7769, 106.7009];
     if (savedMarkers.start) initialCenter = [savedMarkers.start.lat, savedMarkers.start.lng];
 
@@ -393,20 +702,18 @@ function initMap() {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Render saved markers and lines
     Object.keys(savedMarkers).forEach(type => {
         const pos = savedMarkers[type];
         addMarkerToMap(pos.lat, pos.lng, type);
     });
     updateMapLines();
 
-    // Render check-in points from diary
     diaries.forEach(d => {
         if (d.coords) {
             const [lat, lng] = d.coords.split(',').map(Number);
             L.circleMarker([lat, lng], {
                 radius: 6,
-                fillColor: '#795548', // Brown
+                fillColor: '#795548',
                 color: '#fff',
                 weight: 1,
                 fillOpacity: 0.7
@@ -414,86 +721,53 @@ function initMap() {
         }
     });
 
-    // Real-time tracking
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(pos => {
             const { latitude, longitude, accuracy } = pos.coords;
-
             if (!markers.current) {
                 markers.current = L.circleMarker([latitude, longitude], {
-                    radius: 10,
-                    fillColor: '#2196F3',
-                    color: '#fff',
-                    weight: 3,
-                    fillOpacity: 1
-                }).addTo(map).bindPopup(`Bạn đang ở đây<br>Độ chính xác: ${Math.round(accuracy)}m`);
-
-                // If no other markers, center on user
-                if (Object.keys(savedMarkers).length === 0) {
-                    map.setView([latitude, longitude], 15);
-                }
+                    radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+                }).addTo(map).bindPopup(`Bạn đang ở đây`);
+                if (Object.keys(savedMarkers).length === 0) map.setView([latitude, longitude], 15);
             } else {
                 markers.current.setLatLng([latitude, longitude]);
-                markers.current.setPopupContent(`Bạn đang ở đây<br>Độ chính xác: ${Math.round(accuracy)}m`);
             }
-        }, err => console.error("Lỗi Real-time GPS:", err), {
-            enableHighAccuracy: true,
-            maximumAge: 10000,
-            timeout: 5000
-        });
+        }, null, { enableHighAccuracy: true });
     }
 }
 
 function recenterMap() {
-    if (markers.current) {
-        map.setView(markers.current.getLatLng(), 15);
-    } else {
-        alert("Đang tìm vị trí của bạn...");
-    }
+    if (markers.current) map.setView(markers.current.getLatLng(), 15);
 }
 
 function markCurrentLocation(type) {
     if (!navigator.geolocation) return alert("Không hỗ trợ GPS");
-
     navigator.geolocation.getCurrentPosition(pos => {
         const { latitude, longitude } = pos.coords;
         savedMarkers[type] = { lat: latitude, lng: longitude };
-        localStorage.setItem('markers', JSON.stringify(savedMarkers));
-
+        syncTripData();
         addMarkerToMap(latitude, longitude, type);
         updateMapLines();
         map.setView([latitude, longitude], 15);
-
-        // Show coordinate info
-        const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
-        alert(`Đã đánh dấu ${labels[type]}: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-    }, (err) => alert("Lỗi định vị: " + err.message));
+    });
 }
 
 function addMarkerToMap(lat, lng, type) {
     if (markers[type]) map.removeLayer(markers[type]);
-
-    const colors = { start: '#28a745', dest: '#007bff', return: '#dc3545' };
     const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
-
     markers[type] = L.marker([lat, lng]).addTo(map)
-        .bindPopup(`${labels[type]}<br>Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}<br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Xem trên G-Maps</a>`);
+        .bindPopup(`${labels[type]}<br>Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
 }
 
 function updateMapLines() {
-    // Clear existing polylines
     if (polylines.toDest) map.removeLayer(polylines.toDest);
     if (polylines.toReturn) map.removeLayer(polylines.toReturn);
-
-    // Line from Start to Destination (Blue)
     if (savedMarkers.start && savedMarkers.dest) {
         polylines.toDest = L.polyline([
             [savedMarkers.start.lat, savedMarkers.start.lng],
             [savedMarkers.dest.lat, savedMarkers.dest.lng]
         ], { color: '#007bff', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
     }
-
-    // Line from Destination to Return (Red)
     if (savedMarkers.dest && savedMarkers.return) {
         polylines.toReturn = L.polyline([
             [savedMarkers.dest.lat, savedMarkers.dest.lng],
