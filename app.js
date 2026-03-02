@@ -1166,27 +1166,83 @@ async function togglePiP() {
     const video = document.getElementById('pip-video');
     if (!video) return;
 
-    if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-    } else {
-        if (!('pictureInPictureEnabled' in document)) {
-            alert(translations[currentLang].pip_error);
-            return;
-        }
-
-        const canvas = document.getElementById('pip-canvas');
-        const stream = canvas.captureStream(30);
-        video.srcObject = stream;
-
-        video.onloadedmetadata = async () => {
-            try {
-                await video.play();
-                await video.requestPictureInPicture();
-                startPipRendering();
-            } catch (err) {
-                console.error("PiP Error:", err);
+    try {
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+        } else {
+            if (!document.pictureInPictureEnabled) {
+                alert(translations[currentLang].pip_error);
+                return;
             }
-        };
+
+            const canvas = document.getElementById('pip-canvas');
+            // Ensure initial draw so the stream isn't empty
+            renderPipFrame(canvas.getContext('2d'), canvas);
+
+            const stream = canvas.captureStream(30);
+            video.srcObject = stream;
+
+            // Use a promise to wait for metadata and play
+            await new Promise((resolve, reject) => {
+                video.onloadedmetadata = async () => {
+                    try {
+                        await video.play();
+                        resolve();
+                    } catch (e) { reject(e); }
+                };
+                video.onerror = (e) => reject(e);
+            });
+
+            await video.requestPictureInPicture();
+            startPipRendering();
+        }
+    } catch (err) {
+        console.error("PiP Toggle Error:", err);
+        alert("Lỗi khi bật Cửa sổ nổi: " + err.message);
+    }
+}
+
+function renderPipFrame(ctx, canvas) {
+    // Background
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Speedometer
+    ctx.fillStyle = '#0f0';
+    ctx.font = 'bold 80px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(currentKmh, 150, 120);
+    ctx.font = '20px monospace';
+    ctx.fillText('km/h', 150, 150);
+
+    // Simplified Map info
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px sans-serif';
+    if (currentLocation) {
+        ctx.fillText(`GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
+    }
+
+    // Draw a small circle for current position relative to Start/Dest
+    const trip = getCurrentTrip();
+    if (trip && trip.markers && trip.markers.start && trip.markers.dest) {
+         ctx.strokeStyle = '#3f51b5';
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         ctx.moveTo(50, 240);
+         ctx.lineTo(250, 240);
+         ctx.stroke();
+
+         // Start marker
+         ctx.fillStyle = '#28a745';
+         ctx.beginPath(); ctx.arc(50, 240, 5, 0, Math.PI*2); ctx.fill();
+
+         // Dest marker
+         ctx.fillStyle = '#007bff';
+         ctx.beginPath(); ctx.arc(250, 240, 5, 0, Math.PI*2); ctx.fill();
+
+         // Current Position estimate (linear approximation)
+         ctx.fillStyle = '#f00';
+         ctx.beginPath(); ctx.arc(150, 240, 7, 0, Math.PI*2); ctx.fill();
     }
 }
 

@@ -46,7 +46,7 @@
     </div>
 
     <!-- Hidden elements for Picture-in-Picture -->
-    <video id="pip-video" style="display:none" autoplay muted playsinline></video>
+    <video id="pip-video" style="position:fixed; top:-1000px; left:-1000px; width:1px; height:1px; opacity:0; pointer-events:none;" autoplay muted playsinline></video>
     <canvas id="pip-canvas" width="300" height="300" style="display:none"></canvas>
 
     <!-- Templates -->
