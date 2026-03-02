@@ -14,6 +14,7 @@
     <div id="app">
         <header>
             <h1>Chuyến Đi Của Tôi</h1>
+            <button id="theme-toggle" onclick="toggleDarkMode()" aria-label="Đổi chế độ sáng/tối">🌙</button>
         </header>
 
         <main id="content">
@@ -24,6 +25,8 @@
             <button onclick="showSection('diary')" id="nav-diary">Nhật Ký</button>
             <button onclick="showSection('spending')" id="nav-spending">Chi Tiêu</button>
             <button onclick="showSection('map')" id="nav-map">Bản Đồ</button>
+            <button onclick="showSection('checklist')" id="nav-checklist">Danh Sách</button>
+            <button onclick="showSection('extra')" id="nav-extra">Tiện Ích</button>
         </nav>
     </div>
 
@@ -34,11 +37,27 @@
             <form id="diary-form">
                 <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
                 <input type="text" id="end-point" placeholder="Điểm đến" required>
-                <input type="datetime-local" id="departure-time" required>
+                <div style="display:flex; gap:5px;">
+                    <input type="datetime-local" id="departure-time" required style="flex:1;">
+                    <button type="button" onclick="getDiaryLocation()" style="width:50px;" title="Lưu vị trí GPS">📍</button>
+                </div>
+                <input type="hidden" id="diary-coords">
                 <textarea id="food-place" placeholder="Ăn gì ở đâu?"></textarea>
-                <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)" style="flex:1;">
+                    <select id="diary-rating" style="width:80px;">
+                        <option value="5">⭐⭐⭐⭐⭐</option>
+                        <option value="4">⭐⭐⭐⭐</option>
+                        <option value="3">⭐⭐⭐</option>
+                        <option value="2">⭐⭐</option>
+                        <option value="1">⭐</option>
+                    </select>
+                </div>
                 <button type="submit">Thêm Nhật Ký</button>
             </form>
+            <div class="search-box">
+                <input type="text" id="diary-search" placeholder="Tìm kiếm nhật ký..." oninput="renderDiaries()">
+            </div>
             <div id="diary-list"></div>
         </section>
     </template>
@@ -56,10 +75,60 @@
             </div>
             <form id="spending-form">
                 <input type="text" id="spend-item" placeholder="Tên món ăn/đồ dùng" required>
-                <input type="number" id="spend-amount" placeholder="Giá tiền" required>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="spend-amount" placeholder="Giá tiền" required style="flex:1;">
+                    <select id="spend-category">
+                        <option value="Ăn uống">🍴 Ăn uống</option>
+                        <option value="Di chuyển">🚗 Di chuyển</option>
+                        <option value="Lưu trú">🏨 Lưu trú</option>
+                        <option value="Khác">🏷️ Khác</option>
+                    </select>
+                </div>
                 <button type="submit">Ghi Chi Tiêu</button>
             </form>
             <ul id="spending-list"></ul>
+        </section>
+    </template>
+
+    <template id="checklist-template">
+        <section id="checklist-section">
+            <h2>Danh Sách Chuẩn Bị</h2>
+            <form id="checklist-form" style="flex-direction:row;">
+                <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
+                <button type="submit">Thêm</button>
+            </form>
+            <ul id="checklist-list"></ul>
+        </section>
+    </template>
+
+    <template id="extra-template">
+        <section id="extra-section">
+            <h2>Tiện Ích & Cài Đặt</h2>
+
+            <div class="extra-group">
+                <h3>Thống Kê Chi Tiêu</h3>
+                <div id="stats-content"></div>
+            </div>
+
+            <hr>
+
+            <div class="extra-group">
+                <h3>Thông Tin Khẩn Cấp</h3>
+                <textarea id="emergency-info" placeholder="Liên hệ người thân, nhóm máu, dị ứng..." style="height:100px;"></textarea>
+                <button onclick="saveEmergencyInfo()">Lưu Thông Tin</button>
+            </div>
+
+            <hr>
+
+            <div class="extra-group">
+                <h3>Dữ Liệu</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <button onclick="exportData()" style="background:#2196F3;">Xuất Dữ Liệu (JSON)</button>
+                    <button onclick="document.getElementById('import-file').click()" style="background:#ff9800;">Nhập Dữ Liệu</button>
+                </div>
+                <input type="file" id="import-file" style="display:none" onchange="importData(event)">
+                <button onclick="clearAllData()" style="background:#f44336; margin-top:10px;">Xóa Tất Cả Dữ Liệu</button>
+            </div>
         </section>
     </template>
 
