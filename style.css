@@ -127,16 +127,24 @@ button:active {
     border-top: 3px solid var(--primary-color);
 }
 
-.bottom-nav button::before {
-    font-size: 18px;
-    margin-bottom: 2px;
+.nav-icon {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 4px;
+    transition: filter 0.3s;
 }
 
-#nav-diary::before { content: "📖"; }
-#nav-spending::before { content: "💰"; }
-#nav-map::before { content: "📍"; }
-#nav-trips::before { content: "🚗"; }
-#nav-extra::before { content: "⚙️"; }
+.bottom-nav button.active .nav-icon {
+    color: var(--primary-color);
+}
+
+body.dark-mode .nav-icon {
+    color: #888;
+}
+
+body.dark-mode .bottom-nav button.active .nav-icon {
+    color: var(--primary-color);
+}
 
 /* Spending Page */
 .budget-container {
@@ -173,6 +181,7 @@ li {
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 .diary-item {

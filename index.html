@@ -22,21 +22,36 @@
         </main>
 
         <nav class="bottom-nav">
-            <button onclick="showSection('diary')" id="nav-diary">Nhật Ký</button>
-            <button onclick="showSection('spending')" id="nav-spending">Chi Tiêu</button>
-            <button onclick="showSection('map')" id="nav-map">Bản Đồ</button>
-            <button onclick="showSection('trips')" id="nav-trips">Chuyến Đi</button>
-            <button onclick="showSection('extra')" id="nav-extra">Tiện Ích</button>
+            <button onclick="showSection('diary')" id="nav-diary">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M21,4H3A2,2 0 0,0 1,6V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V6A2,2 0 0,0 21,4M21,19H3V6H21V19M19,9H5V7H19V9M19,13H5V11H19V13M19,17H5V15H19V17Z"/></svg>
+                <span data-i18n="nav_diary">Nhật Ký</span>
+            </button>
+            <button onclick="showSection('spending')" id="nav-spending">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/></svg>
+                <span data-i18n="nav_spending">Chi Tiêu</span>
+            </button>
+            <button onclick="showSection('map')" id="nav-map">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M12,2C8.13,2 5,5.13 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9C19,5.13 15.87,2 12,2M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5Z"/></svg>
+                <span data-i18n="nav_map">Bản Đồ</span>
+            </button>
+            <button onclick="showSection('trips')" id="nav-trips">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,16A1.5,1.5 0 1,1 8,14.5A1.5,1.5 0 0,1 6.5,16M17.5,16A1.5,1.5 0 1,1 19,14.5A1.5,1.5 0 0,1 17.5,16M5,11L6.5,6.5H17.5L19,11H5Z"/></svg>
+                <span data-i18n="nav_trips">Chuyến Đi</span>
+            </button>
+            <button onclick="showSection('settings')" id="nav-settings">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.35 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.1L14.48,2.45C14.43,2.21 14.22,2 14,2H10C9.78,2 9.57,2.21 9.52,2.45L9.14,5.1C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11.03C4.53,11.35 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.34 8.53,18.66 9.14,18.9L9.52,21.55C9.57,21.79 9.78,22 10,22H14C14.22,22 14.43,21.79 14.48,21.55L14.86,18.9C15.47,18.66 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
+                <span data-i18n="nav_settings">Cài Đặt</span>
+            </button>
         </nav>
     </div>
 
     <!-- Templates -->
     <template id="trips-template">
         <section id="trips-section">
-            <h2>Quản Lý Chuyến Đi</h2>
+            <h2 data-i18n="nav_trips">Quản Lý Chuyến Đi</h2>
             <form id="trip-form">
                 <input type="text" id="trip-name" placeholder="Tên chuyến đi mới (vd: Đà Lạt 2024)" required>
-                <button type="submit">Tạo Chuyến Đi Mới</button>
+                <button type="submit" data-i18n="add_trip">Tạo Chuyến Đi Mới</button>
             </form>
             <div id="trip-list" style="margin-top: 20px;">
                 <!-- Trips will be listed here -->
@@ -46,7 +61,7 @@
 
     <template id="diary-template">
         <section id="diary-section">
-            <h2 id="current-trip-title-diary">Nhật Ký Chuyến Đi</h2>
+            <h2 id="current-trip-title-diary" data-i18n="nav_diary">Nhật Ký Chuyến Đi</h2>
             <form id="diary-form">
                 <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
                 <input type="text" id="end-point" placeholder="Điểm đến" required>
@@ -73,7 +88,7 @@
                         <option value="1">⭐</option>
                     </select>
                 </div>
-                <button type="submit">Thêm Nhật Ký</button>
+                <button type="submit" data-i18n="add_diary">Thêm Nhật Ký</button>
             </form>
             <div class="search-box">
                 <input type="text" id="diary-search" placeholder="Tìm kiếm nhật ký..." oninput="renderDiaries()">
@@ -86,14 +101,14 @@
         <section id="spending-section">
             <h2 id="current-trip-title-spending">Quản Lý Chi Tiêu</h2>
             <div id="spending-analytics" class="extra-group" style="margin-bottom: 20px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
-                <h3 style="margin-top:0">Phân Tích Chi Tiêu</h3>
+                <h3 style="margin-top:0" data-i18n="spending_analytics">Phân Tích Chi Tiêu</h3>
                 <div style="display: flex; flex-direction: column; align-items: center;">
                     <canvas id="spending-chart" width="200" height="200" style="max-width: 100%;"></canvas>
                     <div id="chart-legend" style="margin-top: 10px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px;"></div>
                 </div>
             </div>
             <div class="budget-container">
-                <label for="budget-limit">Ngân sách:</label>
+                <label for="budget-limit" data-i18n="budget_label">Ngân sách:</label>
                 <input type="number" id="budget-limit" placeholder="Đặt ngân sách" value="1000000">
                 <div class="progress-bar">
                     <div id="budget-progress" class="progress-fill"></div>
@@ -105,24 +120,40 @@
                 <div style="display:flex; gap:5px;">
                     <input type="number" id="spend-amount" placeholder="Giá tiền" required style="flex:1;">
                     <select id="spend-category">
-                        <option value="Ăn uống">🍴 Ăn uống</option>
-                        <option value="Di chuyển">🚗 Di chuyển</option>
-                        <option value="Lưu trú">🏨 Lưu trú</option>
-                        <option value="Khác">🏷️ Khác</option>
+                        <!-- Categories will be injected by JS -->
                     </select>
                 </div>
-                <button type="submit">Ghi Chi Tiêu</button>
+                <button type="submit" data-i18n="add_spending">Ghi Chi Tiêu</button>
             </form>
             <ul id="spending-list"></ul>
         </section>
     </template>
 
-    <template id="extra-template">
-        <section id="extra-section">
-            <h2 id="current-trip-title-extra">Tiện Ích</h2>
+    <template id="settings-template">
+        <section id="settings-section">
+            <h2 id="current-trip-title-settings" data-i18n="settings_title">Cài Đặt</h2>
 
             <div class="extra-group">
-                <h3>Danh Sách Chuẩn Bị</h3>
+                <h3 data-i18n="appearance_lang">Giao diện & Ngôn ngữ</h3>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span data-i18n="select_language">Ngôn ngữ:</span>
+                        <select id="lang-select" onchange="changeLanguage(this.value)" style="width:120px;">
+                            <option value="vi">Tiếng Việt</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span data-i18n="theme_color">Màu chủ đạo:</span>
+                        <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:120px; height:35px; padding:0; border:none;">
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="extra-group">
+                <h3 data-i18n="checklist_title">Danh Sách Chuẩn Bị</h3>
                 <form id="checklist-form" style="display:flex; gap:5px; margin-bottom:10px;">
                     <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
                     <button type="submit" style="width:auto; padding:0 15px;">Thêm</button>
@@ -133,35 +164,39 @@
             <hr>
 
             <div class="extra-group">
-                <h3>Thông Tin Khẩn Cấp</h3>
+                <h3 data-i18n="emergency_title">Thông Tin Khẩn Cấp</h3>
                 <textarea id="emergency-info" placeholder="Liên hệ người thân, nhóm máu, dị ứng..." style="height:100px;"></textarea>
-                <button onclick="saveEmergencyInfo()">Lưu Thông Tin</button>
+                <button onclick="saveEmergencyInfo()" data-i18n="save_btn">Lưu Thông Tin</button>
             </div>
 
             <hr>
 
             <div class="extra-group">
-                <h3>Dữ Liệu & Báo Cáo</h3>
+                <h3 data-i18n="data_report">Dữ Liệu & Báo Cáo</h3>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button onclick="generateTripReport()" style="background:#3f51b5; grid-column: span 2;">Xuất Báo Cáo Tổng Kết (PDF)</button>
-                    <button onclick="exportData()" style="background:#2196F3;">Xuất Dữ Liệu (JSON)</button>
-                    <button onclick="document.getElementById('import-file').click()" style="background:#ff9800;">Nhập Dữ Liệu</button>
+                    <button onclick="generateTripReport()" style="background:var(--primary-color); grid-column: span 2;" data-i18n="export_report">Xuất Báo Cáo Tổng Kết (PDF)</button>
+                    <button onclick="exportData()" style="background:#2196F3;" data-i18n="export_json">Xuất Dữ Liệu (JSON)</button>
+                    <button onclick="document.getElementById('import-file').click()" style="background:#ff9800;" data-i18n="import_json">Nhập Dữ Liệu</button>
                 </div>
                 <input type="file" id="import-file" style="display:none" onchange="importData(event)">
-                <button onclick="clearAllData()" style="background:#f44336; margin-top:10px;">Xóa Tất Cả Dữ Liệu</button>
+                <button onclick="clearAllData()" style="background:#f44336; margin-top:10px;" data-i18n="clear_all">Xóa Tất Cả Dữ Liệu</button>
+            </div>
+
+            <div style="margin-top: 30px; text-align: center; font-size: 14px; opacity: 0.7;">
+                <p>Powered By <strong>Nhutcoder</strong></p>
             </div>
         </section>
     </template>
 
     <template id="map-template">
         <section id="map-section">
-            <h2 id="current-trip-title-map">Bản Đồ Hành Trình</h2>
+            <h2 id="current-trip-title-map" data-i18n="map_title">Bản Đồ Hành Trình</h2>
             <div id="map"></div>
             <div class="map-controls">
-                <button onclick="markCurrentLocation('start')" style="background:#28a745;">Điểm Đi</button>
-                <button onclick="markCurrentLocation('dest')" style="background:#007bff;">Điểm Đến</button>
-                <button onclick="markCurrentLocation('return')" style="background:#dc3545;">Điểm Về</button>
-                <button onclick="recenterMap()" style="background:#6c757d; width:100%;">Tâm Vị Trí Hiện Tại</button>
+                <button onclick="markCurrentLocation('start')" style="background:#28a745;" data-i18n="mark_start">Điểm Đi</button>
+                <button onclick="markCurrentLocation('dest')" style="background:#007bff;" data-i18n="mark_dest">Điểm Đến</button>
+                <button onclick="markCurrentLocation('return')" style="background:#dc3545;" data-i18n="mark_return">Điểm Về</button>
+                <button onclick="recenterMap()" style="background:#6c757d; width:100%;" data-i18n="recenter_btn">Tâm Vị Trí Hiện Tại</button>
             </div>
         </section>
     </template>
