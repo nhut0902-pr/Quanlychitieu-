@@ -49,7 +49,16 @@ const translations = {
         current_speed: "Tốc độ hiện tại",
         no_diary: "Không tìm thấy nhật ký.",
         delete_confirm: "Bạn có chắc muốn xóa?",
-        copy_success: "Đã copy tọa độ: "
+        copy_success: "Đã copy tọa độ: ",
+        notifications_title: "Thông Báo",
+        notify_motion: "Thông báo khi di chuyển (>10km/h):",
+        trip_started_title: "Chuyến đi bắt đầu!",
+        trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
+        notify_unsupported: "Trình duyệt của bạn không hỗ trợ thông báo.",
+        notify_denied: "Bạn cần cấp quyền thông báo để sử dụng tính năng này.",
+        trip_count: "mục nhật ký",
+        spend_count: "khoản chi",
+        delete_btn: "Xóa"
     },
     en: {
         nav_diary: "Diary",
@@ -96,7 +105,16 @@ const translations = {
         current_speed: "Current Speed",
         no_diary: "No diaries found.",
         delete_confirm: "Are you sure you want to delete?",
-        copy_success: "Coordinates copied: "
+        copy_success: "Coordinates copied: ",
+        notifications_title: "Notifications",
+        notify_motion: "Notify when moving (>10km/h):",
+        trip_started_title: "Trip Started!",
+        trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
+        notify_unsupported: "Your browser does not support notifications.",
+        notify_denied: "You need to grant notification permission to use this feature.",
+        trip_count: "diaries",
+        spend_count: "expenses",
+        delete_btn: "Delete"
     }
 };
 
@@ -171,6 +189,8 @@ function escapeHTML(str) {
 // Multi-trip logic
 let trips = JSON.parse(localStorage.getItem('trips')) || [];
 let currentTripId = localStorage.getItem('currentTripId') || null;
+let motionNotifyEnabled = localStorage.getItem('motionNotifyEnabled') === 'true';
+let hasNotifiedStart = false;
 
 function saveTrips() {
     localStorage.setItem('trips', JSON.stringify(trips));
@@ -363,9 +383,9 @@ function initTrips() {
 
 function renderTrips() {
     const list = document.getElementById('trip-list');
-    const diaryText = currentLang === 'vi' ? 'mục nhật ký' : 'diaries';
-    const spendText = currentLang === 'vi' ? 'khoản chi' : 'expenses';
-    const deleteText = currentLang === 'vi' ? 'Xóa' : 'Delete';
+    const diaryText = translations[currentLang].trip_count;
+    const spendText = translations[currentLang].spend_count;
+    const deleteText = translations[currentLang].delete_btn;
 
     list.innerHTML = trips.map(t => `
         <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 5px solid ${t.id == currentTripId ? 'var(--primary-color)' : '#ccc'}">
@@ -702,6 +722,8 @@ function drawSpendingChart() {
 // --- Settings & Utils Logic ---
 function initSettings() {
     document.getElementById('emergency-info').value = emergencyInfo;
+    const notifyToggle = document.getElementById('notify-motion-toggle');
+    if (notifyToggle) notifyToggle.checked = motionNotifyEnabled;
     document.getElementById('lang-select').value = currentLang;
     document.getElementById('theme-color-picker').value = primaryColor;
     renderChecklist();
@@ -750,6 +772,38 @@ function saveEmergencyInfo() {
     emergencyInfo = document.getElementById('emergency-info').value;
     syncTripData();
     alert("Đã lưu thông tin khẩn cấp!");
+}
+
+function toggleMotionNotify(enabled) {
+    if (enabled) {
+        if (!("Notification" in window)) {
+            alert(translations[currentLang].notify_unsupported);
+            document.getElementById('notify-motion-toggle').checked = false;
+            return;
+        }
+        Notification.requestPermission().then(permission => {
+            if (permission !== "granted") {
+                alert(translations[currentLang].notify_denied);
+                document.getElementById('notify-motion-toggle').checked = false;
+                motionNotifyEnabled = false;
+            } else {
+                motionNotifyEnabled = true;
+                localStorage.setItem('motionNotifyEnabled', 'true');
+            }
+        });
+    } else {
+        motionNotifyEnabled = false;
+        localStorage.setItem('motionNotifyEnabled', 'false');
+    }
+}
+
+function sendTripStartedNotification() {
+    if (motionNotifyEnabled && Notification.permission === "granted") {
+        new Notification(translations[currentLang].trip_started_title, {
+            body: translations[currentLang].trip_started_body,
+            icon: 'https://img.icons8.com/color/96/000000/map-marker.png'
+        });
+    }
 }
 
 async function generateTripReport() {
@@ -901,10 +955,19 @@ function initMap() {
 
             // Update Speedometer
             const speedEl = document.getElementById('speed-value');
+            const kmh = speed ? Math.round(speed * 3.6) : 0;
             if (speedEl) {
-                // speed is in m/s, convert to km/h. If null, show 0.
-                const kmh = speed ? Math.round(speed * 3.6) : 0;
                 speedEl.innerText = kmh;
+            }
+
+            // Check for trip start notification (> 10km/h)
+            if (kmh >= 10 && !hasNotifiedStart) {
+                sendTripStartedNotification();
+                hasNotifiedStart = true;
+            } else if (kmh < 5) {
+                // Reset notification if stopped or very slow for a while
+                // In a real app we might want more complex logic, but for now simple reset
+                hasNotifiedStart = false;
             }
 
             if (!markers.current) {

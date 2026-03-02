@@ -153,6 +153,19 @@
             <hr>
 
             <div class="extra-group">
+                <h3 data-i18n="notifications_title">Thông Báo</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span data-i18n="notify_motion">Thông báo khi di chuyển (>10km/h):</span>
+                    <label class="switch">
+                        <input type="checkbox" id="notify-motion-toggle" onchange="toggleMotionNotify(this.checked)">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="extra-group">
                 <h3 data-i18n="checklist_title">Danh Sách Chuẩn Bị</h3>
                 <form id="checklist-form" style="display:flex; gap:5px; margin-bottom:10px;">
                     <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
