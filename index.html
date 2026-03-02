@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nhật Ký Chuyến Đi Offline</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/000000/map-marker.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Chuyến Đi Của Tôi</h1>
+        </header>
+
+        <main id="content">
+            <!-- Content will be injected here -->
+        </main>
+
+        <nav class="bottom-nav">
+            <button onclick="showSection('diary')" id="nav-diary">Nhật Ký</button>
+            <button onclick="showSection('spending')" id="nav-spending">Chi Tiêu</button>
+            <button onclick="showSection('map')" id="nav-map">Bản Đồ</button>
+        </nav>
+    </div>
+
+    <!-- Templates -->
+    <template id="diary-template">
+        <section id="diary-section">
+            <h2>Nhật Ký Chuyến Đi</h2>
+            <form id="diary-form">
+                <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
+                <input type="text" id="end-point" placeholder="Điểm đến" required>
+                <input type="datetime-local" id="departure-time" required>
+                <textarea id="food-place" placeholder="Ăn gì ở đâu?"></textarea>
+                <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)">
+                <button type="submit">Thêm Nhật Ký</button>
+            </form>
+            <div id="diary-list"></div>
+        </section>
+    </template>
+
+    <template id="spending-template">
+        <section id="spending-section">
+            <h2>Quản Lý Chi Tiêu</h2>
+            <div class="budget-container">
+                <label for="budget-limit">Ngân sách:</label>
+                <input type="number" id="budget-limit" placeholder="Đặt ngân sách" value="1000000">
+                <div class="progress-bar">
+                    <div id="budget-progress" class="progress-fill"></div>
+                </div>
+                <p id="budget-info">0 / 1,000,000</p>
+            </div>
+            <form id="spending-form">
+                <input type="text" id="spend-item" placeholder="Tên món ăn/đồ dùng" required>
+                <input type="number" id="spend-amount" placeholder="Giá tiền" required>
+                <button type="submit">Ghi Chi Tiêu</button>
+            </form>
+            <ul id="spending-list"></ul>
+        </section>
+    </template>
+
+    <template id="map-template">
+        <section id="map-section">
+            <h2>Bản Đồ Hành Trình</h2>
+            <div id="map"></div>
+            <div class="map-controls">
+                <button onclick="markCurrentLocation('start')">Đánh dấu Điểm Đi</button>
+                <button onclick="markCurrentLocation('dest')">Đánh dấu Điểm Đến</button>
+                <button onclick="markCurrentLocation('return')">Đánh dấu Điểm Về</button>
+            </div>
+        </section>
+    </template>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js');
+            });
+        }
+    </script>
+</body>
+</html>

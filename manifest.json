@@ -1,0 +1,21 @@
+{
+  "name": "Nhật Ký Chuyến Đi Offline",
+  "short_name": "DiaryGo",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4CAF50",
+  "description": "Ứng dụng nhật ký chuyến đi và quản lý chi tiêu ngoại tuyến.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/192/192192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/512/512512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
