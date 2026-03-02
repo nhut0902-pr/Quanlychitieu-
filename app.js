@@ -1,5 +1,19 @@
 let currentSection = 'diary';
-let map, markers = {};
+let map, markers = {}, polylines = {};
+let watchId = null;
+
+function escapeHTML(str) {
+    if (!str) return "";
+    return String(str).replace(/[&<>"']/g, function(m) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[m];
+    });
+}
 
 // Data Storage Initialization
 let diaries = JSON.parse(localStorage.getItem('diaries')) || [];
@@ -36,6 +50,11 @@ function showSection(section) {
     if (section === 'diary') initDiary();
     if (section === 'spending') initSpending();
     if (section === 'map') initMap();
+    else if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
     if (section === 'checklist') initChecklist();
     if (section === 'extra') initExtra();
 }
@@ -90,13 +109,13 @@ function renderDiaries() {
         <div class="diary-item">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <strong>${d.start} ➔ ${d.end}</strong> ${'⭐'.repeat(d.rating)}<br>
+                    <strong>${escapeHTML(d.start)} ➔ ${escapeHTML(d.end)}</strong> ${'⭐'.repeat(d.rating)}<br>
                     <small>🕒 ${new Date(d.time).toLocaleString('vi-VN')}</small>
                 </div>
                 <button onclick="deleteDiary(${d.id})" style="background:none; color:red; padding:5px; font-size:12px;">Xóa</button>
             </div>
             <div style="margin-top:8px; border-top:1px dashed #eee; padding-top:8px;">
-                <em>🍴 ${d.food || 'Không ghi chú'}</em><br>
+                <em>🍴 ${escapeHTML(d.food) || 'Không ghi chú'}</em><br>
                 <div style="display:flex; justify-content:space-between;">
                     <span style="color:#e91e63; font-weight:bold;">💰 ${Number(d.cost || 0).toLocaleString()}đ</span>
                     ${d.coords ? `<button onclick="showOnMap(${d.coords})" style="padding:2px 5px; font-size:10px;">📍 Xem bản đồ</button>` : ''}
@@ -110,7 +129,14 @@ function showOnMap(lat, lng) {
     showSection('map');
     setTimeout(() => {
         map.setView([lat, lng], 15);
-        L.marker([lat, lng]).addTo(map).bindPopup("Vị trí nhật ký").openPopup();
+        L.circleMarker([lat, lng], {
+            radius: 8,
+            fillColor: '#795548', // Brown for check-ins
+            color: '#fff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup("Điểm Check-in").openPopup();
     }, 500);
 }
 
@@ -159,7 +185,7 @@ function renderSpendings() {
     }
     list.innerHTML = spendings.slice().reverse().map(s => `
         <li>
-            <span>${s.name} <small style="color:#888;">(${s.category})</small></span>
+            <span>${escapeHTML(s.name)} <small style="color:#888;">(${escapeHTML(s.category)})</small></span>
             <div>
                 <span style="font-weight:bold;">${s.amount.toLocaleString()}đ</span>
                 <button onclick="deleteSpending(${s.id})" style="background:none; color:red; padding:0 0 0 10px; font-size:12px; border:none;">✕</button>
@@ -192,7 +218,7 @@ function updateBudgetUI() {
         info.style.fontWeight = 'bold';
     } else {
         progress.style.backgroundColor = percentage > 90 ? '#ff9800' : '#4CAF50';
-        info.style.color = '#333';
+        info.style.color = ''; // Reset to default (handles dark mode better)
         info.style.fontWeight = 'normal';
     }
 }
@@ -219,7 +245,7 @@ function renderChecklist() {
     list.innerHTML = checklist.map(item => `
         <li class="checklist-item ${item.done ? 'done' : ''}">
             <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleCheckItem(${item.id})">
-            <span style="flex:1;">${item.text}</span>
+            <span style="flex:1;">${escapeHTML(item.text)}</span>
             <button onclick="deleteCheckItem(${item.id})" style="background:none; color:red; padding:5px;">✕</button>
         </li>
     `).join('');
@@ -268,7 +294,7 @@ function renderStats() {
         return `
             <div class="stat-bar-container">
                 <div class="stat-bar-label">
-                    <span>${cat}</span>
+                    <span>${escapeHTML(cat)}</span>
                     <span>${catTotal.toLocaleString()}đ (${percent.toFixed(1)}%)</span>
                 </div>
                 <div class="stat-bar">
@@ -322,54 +348,75 @@ function clearAllData() {
 // --- Map Logic ---
 function initMap() {
     if (map) map.remove();
+    if (watchId) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+    markers = {}; // Clear marker references
+    polylines = {};
 
-    // Default to a central point if no geolocation
-    map = L.map('map').setView([10.7769, 106.7009], 13); // TP.HCM
+    map = L.map('map').setView([10.7769, 106.7009], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Load saved markers
+    // Render saved markers and lines
     Object.keys(savedMarkers).forEach(type => {
         const pos = savedMarkers[type];
         addMarkerToMap(pos.lat, pos.lng, type);
     });
+    updateMapLines();
 
-    // Try to get current location
+    // Render check-in points from diary
+    diaries.forEach(d => {
+        if (d.coords) {
+            const [lat, lng] = d.coords.split(',').map(Number);
+            L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: '#795548', // Brown
+                color: '#fff',
+                weight: 1,
+                fillOpacity: 0.7
+            }).addTo(map).bindPopup(`Check-in: ${d.end}`);
+        }
+    });
+
+    // Real-time tracking
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            map.setView([pos.coords.latitude, pos.coords.longitude], 15);
-            // Optional: add a 'current position' circle
-            L.circle([pos.coords.latitude, pos.coords.longitude], {
-                radius: 100,
-                color: '#4CAF50',
-                fillColor: '#4CAF50',
-                fillOpacity: 0.3
-            }).addTo(map).bindPopup("Vị trí hiện tại của bạn");
-        }, err => {
-            console.log("Geolocation error:", err);
-        });
+        watchId = navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude } = pos.coords;
+
+            if (!markers.current) {
+                markers.current = L.circleMarker([latitude, longitude], {
+                    radius: 8,
+                    fillColor: '#2196F3',
+                    color: '#fff',
+                    weight: 2,
+                    fillOpacity: 1
+                }).addTo(map).bindPopup("Bạn đang ở đây");
+            } else {
+                markers.current.setLatLng([latitude, longitude]);
+            }
+
+            // Optionally auto-center if it's the first fix
+            // map.setView([latitude, longitude]);
+        }, err => console.log(err), { enableHighAccuracy: true });
     }
 }
 
 function markCurrentLocation(type) {
-    if (!navigator.geolocation) {
-        alert("Trình duyệt không hỗ trợ GPS.");
-        return;
-    }
+    if (!navigator.geolocation) return alert("Không hỗ trợ GPS");
 
     navigator.geolocation.getCurrentPosition(pos => {
         const { latitude, longitude } = pos.coords;
-
         savedMarkers[type] = { lat: latitude, lng: longitude };
         localStorage.setItem('markers', JSON.stringify(savedMarkers));
 
         addMarkerToMap(latitude, longitude, type);
+        updateMapLines();
         map.setView([latitude, longitude], 15);
-    }, err => {
-        alert("Không thể lấy vị trí GPS. Hãy bật định vị.");
-    });
+    }, () => alert("Lỗi định vị"));
 }
 
 function addMarkerToMap(lat, lng, type) {
@@ -378,16 +425,33 @@ function addMarkerToMap(lat, lng, type) {
     const colors = { start: '#28a745', dest: '#007bff', return: '#dc3545' };
     const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
 
-    const marker = L.circleMarker([lat, lng], {
+    markers[type] = L.circleMarker([lat, lng], {
         radius: 10,
-        fillColor: colors[type] || 'blue',
+        fillColor: colors[type],
         color: "#fff",
         weight: 2,
-        opacity: 1,
-        fillOpacity: 0.8
-    }).addTo(map)
-    .bindPopup(labels[type])
-    .openPopup();
+        fillOpacity: 0.9
+    }).addTo(map).bindPopup(labels[type]);
+}
 
-    markers[type] = marker;
+function updateMapLines() {
+    // Clear existing polylines
+    if (polylines.toDest) map.removeLayer(polylines.toDest);
+    if (polylines.toReturn) map.removeLayer(polylines.toReturn);
+
+    // Line from Start to Destination (Blue)
+    if (savedMarkers.start && savedMarkers.dest) {
+        polylines.toDest = L.polyline([
+            [savedMarkers.start.lat, savedMarkers.start.lng],
+            [savedMarkers.dest.lat, savedMarkers.dest.lng]
+        ], { color: '#007bff', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
+    }
+
+    // Line from Destination to Return (Red)
+    if (savedMarkers.dest && savedMarkers.return) {
+        polylines.toReturn = L.polyline([
+            [savedMarkers.dest.lat, savedMarkers.dest.lng],
+            [savedMarkers.return.lat, savedMarkers.return.lng]
+        ], { color: '#dc3545', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
+    }
 }
