@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-diary-v10';
+const CACHE_NAME = 'travel-diary-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -35,5 +35,24 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => response || fetch(event.request))
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (let i = 0; i < clientList.length; i++) {
+          if (clientList[i].focused) {
+            client = clientList[i];
+            break;
+          }
+        }
+        return client.focus();
+      }
+      return clients.openWindow('./');
+    })
   );
 });

@@ -1,6 +1,8 @@
 let currentSection = 'diary';
 let map, markers = {}, polylines = {};
 let watchId = null;
+let currentKmh = 0;
+let currentLocation = null;
 let selectedPhotos = [];
 
 const translations = {
@@ -24,6 +26,7 @@ const translations = {
         save_btn: "Lưu Thông Tin",
         add_trip: "Tạo Chuyến Đi Mới",
         trip_placeholder: "Tên chuyến đi mới (vd: Đà Lạt 2024)",
+        start_date_label: "Ngày bắt đầu:",
         start_placeholder: "Điểm xuất phát",
         end_placeholder: "Điểm đến",
         food_placeholder: "Ăn gì ở đâu?",
@@ -54,6 +57,10 @@ const translations = {
         notify_motion: "Thông báo khi di chuyển (>10km/h):",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
+        prep_2days_title: "Chuẩn bị hành lý!",
+        prep_2days_body: "Còn 2 ngày nữa là đến chuyến đi {name}. Hãy kiểm tra lại danh sách chuẩn bị nhé!",
+        prep_evening_title: "Chuyến đi sắp bắt đầu!",
+        prep_evening_body: "Tối nay chuyến đi {name} sẽ chính thức bắt đầu. Chúc bạn có một hành trình tuyệt vời!",
         notify_unsupported: "Trình duyệt của bạn không hỗ trợ thông báo.",
         notify_denied: "Bạn cần cấp quyền thông báo để sử dụng tính năng này.",
         trip_count: "mục nhật ký",
@@ -80,6 +87,7 @@ const translations = {
         save_btn: "Save Info",
         add_trip: "Create New Trip",
         trip_placeholder: "New trip name (e.g. Paris 2024)",
+        start_date_label: "Start Date:",
         start_placeholder: "Start point",
         end_placeholder: "Destination",
         food_placeholder: "What to eat/where?",
@@ -110,6 +118,10 @@ const translations = {
         notify_motion: "Notify when moving (>10km/h):",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
+        prep_2days_title: "Prepare your luggage!",
+        prep_2days_body: "2 days left until {name}. Check your checklist!",
+        prep_evening_title: "Trip starting soon!",
+        prep_evening_body: "Trip {name} starts tonight. Have a great journey!",
         notify_unsupported: "Your browser does not support notifications.",
         notify_denied: "You need to grant notification permission to use this feature.",
         trip_count: "diaries",
@@ -292,12 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const firstTrip = {
             id: Date.now(),
             name: 'Chuyến đi mặc định',
+            startDate: new Date().toISOString().split('T')[0],
             diaries: JSON.parse(localStorage.getItem('diaries')) || [],
             spendings: JSON.parse(localStorage.getItem('spendings')) || [],
             budget: parseFloat(localStorage.getItem('budget')) || 1000000,
             markers: JSON.parse(localStorage.getItem('markers')) || {},
             checklist: JSON.parse(localStorage.getItem('checklist')) || [],
-            emergencyInfo: localStorage.getItem('emergencyInfo') || ''
+            emergencyInfo: localStorage.getItem('emergencyInfo') || '',
+            notifiedPrep: []
         };
         trips.push(firstTrip);
         currentTripId = firstTrip.id;
@@ -310,7 +324,96 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadTripData();
     showSection('diary');
+    checkTripPrepNotifications();
+    startGlobalGpsWatch();
 });
+
+function startGlobalGpsWatch() {
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    if (navigator.geolocation) {
+        watchId = navigator.geolocation.watchPosition(pos => {
+            const { latitude, longitude, speed } = pos.coords;
+            currentKmh = speed ? Math.round(speed * 3.6) : 0;
+            currentLocation = [latitude, longitude];
+
+            // Update Speedometer if visible
+            const speedEl = document.getElementById('speed-value');
+            if (speedEl) speedEl.innerText = currentKmh;
+
+            // Check for trip start notification (> 10km/h)
+            if (currentKmh >= 10 && !hasNotifiedStart) {
+                sendTripStartedNotification();
+                hasNotifiedStart = true;
+            } else if (currentKmh < 5) {
+                hasNotifiedStart = false;
+            }
+
+            // Update current marker on map if it exists and section is map
+            if (currentSection === 'map' && map) {
+                if (!markers.current && currentLocation) {
+                    markers.current = L.circleMarker(currentLocation, {
+                        radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+                    }).addTo(map).bindPopup(`Bạn đang ở đây`);
+                    if (Object.keys(savedMarkers).length === 0) map.setView(currentLocation, 15);
+                } else if (markers.current) {
+                    markers.current.setLatLng(currentLocation);
+                }
+            }
+        }, null, { enableHighAccuracy: true });
+    }
+}
+
+function checkTripPrepNotifications() {
+    if (!motionNotifyEnabled || Notification.permission !== "granted") return;
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    trips.forEach(trip => {
+        if (!trip.startDate) return;
+        if (!trip.notifiedPrep) trip.notifiedPrep = [];
+
+        const startDate = new Date(trip.startDate);
+        const diffTime = startDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // 2 days before
+        if (diffDays === 2 && !trip.notifiedPrep.includes('2days')) {
+            sendNotification(
+                translations[currentLang].prep_2days_title,
+                translations[currentLang].prep_2days_body.replace('{name}', trip.name)
+            );
+            trip.notifiedPrep.push('2days');
+            saveTrips();
+        }
+
+        // Evening of the trip start day (e.g., if now is after 18:00)
+        if (trip.startDate === todayStr && now.getHours() >= 18 && !trip.notifiedPrep.includes('evening')) {
+            sendNotification(
+                translations[currentLang].prep_evening_title,
+                translations[currentLang].prep_evening_body.replace('{name}', trip.name)
+            );
+            trip.notifiedPrep.push('evening');
+            saveTrips();
+        }
+    });
+}
+
+function sendNotification(title, body) {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, {
+                body: body,
+                icon: 'https://img.icons8.com/color/96/000000/map-marker.png',
+                vibrate: [200, 100, 200],
+                badge: 'https://img.icons8.com/color/96/000000/map-marker.png',
+                tag: 'trip-notification-' + Date.now()
+            });
+        });
+    } else {
+        new Notification(title, { body, icon: 'https://img.icons8.com/color/96/000000/map-marker.png' });
+    }
+}
 
 function toggleDarkMode() {
     isDarkMode = !isDarkMode;
@@ -350,9 +453,6 @@ function showSection(section) {
     if (section === 'map') {
         initMap();
         setTimeout(() => map && map.invalidateSize(), 200);
-    } else if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
     }
 
     if (section === 'settings') initSettings();
@@ -364,15 +464,18 @@ function initTrips() {
     document.getElementById('trip-form').onsubmit = (e) => {
         e.preventDefault();
         const name = document.getElementById('trip-name').value;
+        const startDate = document.getElementById('trip-start-date').value;
         const newTrip = {
             id: Date.now(),
             name: name,
+            startDate: startDate,
             diaries: [],
             spendings: [],
             budget: 1000000,
             markers: {},
             checklist: [],
-            emergencyInfo: ''
+            emergencyInfo: '',
+            notifiedPrep: []
         };
         trips.push(newTrip);
         saveTrips();
@@ -799,10 +902,10 @@ function toggleMotionNotify(enabled) {
 
 function sendTripStartedNotification() {
     if (motionNotifyEnabled && Notification.permission === "granted") {
-        new Notification(translations[currentLang].trip_started_title, {
-            body: translations[currentLang].trip_started_body,
-            icon: 'https://img.icons8.com/color/96/000000/map-marker.png'
-        });
+        sendNotification(
+            translations[currentLang].trip_started_title,
+            translations[currentLang].trip_started_body
+        );
     }
 }
 
@@ -914,10 +1017,6 @@ function initMap() {
         map.remove();
         map = null;
     }
-    if (watchId) {
-        navigator.geolocation.clearWatch(watchId);
-        watchId = null;
-    }
     markers = {};
     polylines = {};
 
@@ -949,36 +1048,16 @@ function initMap() {
         }
     });
 
-    if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude, speed } = pos.coords;
+    // Speedometer initial value
+    const speedEl = document.getElementById('speed-value');
+    if (speedEl) speedEl.innerText = currentKmh;
 
-            // Update Speedometer
-            const speedEl = document.getElementById('speed-value');
-            const kmh = speed ? Math.round(speed * 3.6) : 0;
-            if (speedEl) {
-                speedEl.innerText = kmh;
-            }
-
-            // Check for trip start notification (> 10km/h)
-            if (kmh >= 10 && !hasNotifiedStart) {
-                sendTripStartedNotification();
-                hasNotifiedStart = true;
-            } else if (kmh < 5) {
-                // Reset notification if stopped or very slow for a while
-                // In a real app we might want more complex logic, but for now simple reset
-                hasNotifiedStart = false;
-            }
-
-            if (!markers.current) {
-                markers.current = L.circleMarker([latitude, longitude], {
-                    radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
-                }).addTo(map).bindPopup(`Bạn đang ở đây`);
-                if (Object.keys(savedMarkers).length === 0) map.setView([latitude, longitude], 15);
-            } else {
-                markers.current.setLatLng([latitude, longitude]);
-            }
-        }, null, { enableHighAccuracy: true });
+    // Use current location if available
+    if (currentLocation) {
+        markers.current = L.circleMarker(currentLocation, {
+            radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+        }).addTo(map).bindPopup(`Bạn đang ở đây`);
+        if (Object.keys(savedMarkers).length === 0) map.setView(currentLocation, 15);
     }
 }
 

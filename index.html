@@ -51,6 +51,10 @@
             <h2 data-i18n="nav_trips">Quản Lý Chuyến Đi</h2>
             <form id="trip-form">
                 <input type="text" id="trip-name" placeholder="Tên chuyến đi mới (vd: Đà Lạt 2024)" required>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <label style="font-size:14px; white-space:nowrap;" data-i18n="start_date_label">Ngày bắt đầu:</label>
+                    <input type="date" id="trip-start-date" required style="flex:1;">
+                </div>
                 <button type="submit" data-i18n="add_trip">Tạo Chuyến Đi Mới</button>
             </form>
             <div id="trip-list" style="margin-top: 20px;">
