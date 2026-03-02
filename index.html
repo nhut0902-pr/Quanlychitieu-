@@ -137,9 +137,10 @@
             <h2>Bản Đồ Hành Trình</h2>
             <div id="map"></div>
             <div class="map-controls">
-                <button onclick="markCurrentLocation('start')">Đánh dấu Điểm Đi</button>
-                <button onclick="markCurrentLocation('dest')">Đánh dấu Điểm Đến</button>
-                <button onclick="markCurrentLocation('return')">Đánh dấu Điểm Về</button>
+                <button onclick="markCurrentLocation('start')" style="background:#28a745;">Điểm Đi</button>
+                <button onclick="markCurrentLocation('dest')" style="background:#007bff;">Điểm Đến</button>
+                <button onclick="markCurrentLocation('return')" style="background:#dc3545;">Điểm Về</button>
+                <button onclick="recenterMap()" style="background:#6c757d; width:100%;">Tâm Vị Trí Hiện Tại</button>
             </div>
         </section>
     </template>

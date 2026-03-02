@@ -15,6 +15,16 @@ function escapeHTML(str) {
     });
 }
 
+// Fix Leaflet default icon issue
+if (typeof L !== 'undefined' && L.Icon) {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+}
+
 // Data Storage Initialization
 let diaries = JSON.parse(localStorage.getItem('diaries')) || [];
 let spendings = JSON.parse(localStorage.getItem('spendings')) || [];
@@ -49,8 +59,10 @@ function showSection(section) {
 
     if (section === 'diary') initDiary();
     if (section === 'spending') initSpending();
-    if (section === 'map') initMap();
-    else if (watchId) {
+    if (section === 'map') {
+        initMap();
+        setTimeout(() => map && map.invalidateSize(), 200);
+    } else if (watchId) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
     }
@@ -105,7 +117,16 @@ function renderDiaries() {
         return;
     }
 
-    list.innerHTML = filtered.slice().reverse().map(d => `
+    list.innerHTML = filtered.slice().reverse().map(d => {
+        const coordsDisplay = d.coords ? `
+            <div style="font-size:11px; color:#666; margin-top:5px; background:#f9f9f9; padding:5px; border-radius:4px;">
+                📍 Tọa độ: ${d.coords}
+                <button onclick="copyCoords('${d.coords}')" style="margin-left:5px; font-size:10px; padding:2px 4px;">Copy</button>
+                <a href="https://www.google.com/maps/search/?api=1&query=${d.coords}" target="_blank" style="margin-left:5px; font-size:10px; color:#2196F3;">G-Maps</a>
+            </div>
+        ` : '';
+
+        return `
         <div class="diary-item">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
@@ -116,27 +137,31 @@ function renderDiaries() {
             </div>
             <div style="margin-top:8px; border-top:1px dashed #eee; padding-top:8px;">
                 <em>🍴 ${escapeHTML(d.food) || 'Không ghi chú'}</em><br>
-                <div style="display:flex; justify-content:space-between;">
+                ${coordsDisplay}
+                <div style="display:flex; justify-content:space-between; margin-top:5px;">
                     <span style="color:#e91e63; font-weight:bold;">💰 ${Number(d.cost || 0).toLocaleString()}đ</span>
                     ${d.coords ? `<button onclick="showOnMap(${d.coords})" style="padding:2px 5px; font-size:10px;">📍 Xem bản đồ</button>` : ''}
                 </div>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+function copyCoords(coords) {
+    navigator.clipboard.writeText(coords).then(() => {
+        alert("Đã copy tọa độ: " + coords);
+    });
 }
 
 function showOnMap(lat, lng) {
     showSection('map');
     setTimeout(() => {
+        if (!map) return;
         map.setView([lat, lng], 15);
-        L.circleMarker([lat, lng], {
-            radius: 8,
-            fillColor: '#795548', // Brown for check-ins
-            color: '#fff',
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 0.9
-        }).addTo(map).bindPopup("Điểm Check-in").openPopup();
+        L.marker([lat, lng]).addTo(map)
+            .bindPopup(`Điểm Check-in<br>Tọa độ: ${lat}, ${lng}<br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Google Maps</a>`)
+            .openPopup();
     }, 500);
 }
 
@@ -347,15 +372,22 @@ function clearAllData() {
 
 // --- Map Logic ---
 function initMap() {
-    if (map) map.remove();
+    if (map) {
+        map.remove();
+        map = null;
+    }
     if (watchId) {
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
     }
-    markers = {}; // Clear marker references
+    markers = {};
     polylines = {};
 
-    map = L.map('map').setView([10.7769, 106.7009], 13);
+    // Initial center (Saigon) or use first marker
+    let initialCenter = [10.7769, 106.7009];
+    if (savedMarkers.start) initialCenter = [savedMarkers.start.lat, savedMarkers.start.lng];
+
+    map = L.map('map').setView(initialCenter, 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -378,30 +410,45 @@ function initMap() {
                 color: '#fff',
                 weight: 1,
                 fillOpacity: 0.7
-            }).addTo(map).bindPopup(`Check-in: ${d.end}`);
+            }).addTo(map).bindPopup(`Check-in: ${escapeHTML(d.end)}<br>Tọa độ: ${d.coords}`);
         }
     });
 
     // Real-time tracking
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude } = pos.coords;
+            const { latitude, longitude, accuracy } = pos.coords;
 
             if (!markers.current) {
                 markers.current = L.circleMarker([latitude, longitude], {
-                    radius: 8,
+                    radius: 10,
                     fillColor: '#2196F3',
                     color: '#fff',
-                    weight: 2,
+                    weight: 3,
                     fillOpacity: 1
-                }).addTo(map).bindPopup("Bạn đang ở đây");
+                }).addTo(map).bindPopup(`Bạn đang ở đây<br>Độ chính xác: ${Math.round(accuracy)}m`);
+
+                // If no other markers, center on user
+                if (Object.keys(savedMarkers).length === 0) {
+                    map.setView([latitude, longitude], 15);
+                }
             } else {
                 markers.current.setLatLng([latitude, longitude]);
+                markers.current.setPopupContent(`Bạn đang ở đây<br>Độ chính xác: ${Math.round(accuracy)}m`);
             }
+        }, err => console.error("Lỗi Real-time GPS:", err), {
+            enableHighAccuracy: true,
+            maximumAge: 10000,
+            timeout: 5000
+        });
+    }
+}
 
-            // Optionally auto-center if it's the first fix
-            // map.setView([latitude, longitude]);
-        }, err => console.log(err), { enableHighAccuracy: true });
+function recenterMap() {
+    if (markers.current) {
+        map.setView(markers.current.getLatLng(), 15);
+    } else {
+        alert("Đang tìm vị trí của bạn...");
     }
 }
 
@@ -416,7 +463,11 @@ function markCurrentLocation(type) {
         addMarkerToMap(latitude, longitude, type);
         updateMapLines();
         map.setView([latitude, longitude], 15);
-    }, () => alert("Lỗi định vị"));
+
+        // Show coordinate info
+        const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
+        alert(`Đã đánh dấu ${labels[type]}: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+    }, (err) => alert("Lỗi định vị: " + err.message));
 }
 
 function addMarkerToMap(lat, lng, type) {
@@ -425,13 +476,8 @@ function addMarkerToMap(lat, lng, type) {
     const colors = { start: '#28a745', dest: '#007bff', return: '#dc3545' };
     const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
 
-    markers[type] = L.circleMarker([lat, lng], {
-        radius: 10,
-        fillColor: colors[type],
-        color: "#fff",
-        weight: 2,
-        fillOpacity: 0.9
-    }).addTo(map).bindPopup(labels[type]);
+    markers[type] = L.marker([lat, lng]).addTo(map)
+        .bindPopup(`${labels[type]}<br>Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}<br><a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">Xem trên G-Maps</a>`);
 }
 
 function updateMapLines() {

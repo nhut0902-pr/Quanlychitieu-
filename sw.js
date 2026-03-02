@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-diary-v4';
+const CACHE_NAME = 'travel-diary-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,10 @@ const ASSETS = [
   './manifest.json',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  'https://img.icons8.com/color/192/000000/map-marker.png'
+  'https://img.icons8.com/color/192/000000/map-marker.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
 ];
 
 self.addEventListener('install', event => {
