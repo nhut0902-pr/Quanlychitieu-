@@ -46,6 +46,7 @@ const translations = {
         mark_dest: "Điểm Đến",
         mark_return: "Điểm Về",
         recenter_btn: "Tâm Vị Trí Hiện Tại",
+        current_speed: "Tốc độ hiện tại",
         no_diary: "Không tìm thấy nhật ký.",
         delete_confirm: "Bạn có chắc muốn xóa?",
         copy_success: "Đã copy tọa độ: "
@@ -92,6 +93,7 @@ const translations = {
         mark_dest: "Destination",
         mark_return: "Return Point",
         recenter_btn: "Center on Me",
+        current_speed: "Current Speed",
         no_diary: "No diaries found.",
         delete_confirm: "Are you sure you want to delete?",
         copy_success: "Coordinates copied: "
@@ -895,7 +897,16 @@ function initMap() {
 
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude, accuracy } = pos.coords;
+            const { latitude, longitude, speed } = pos.coords;
+
+            // Update Speedometer
+            const speedEl = document.getElementById('speed-value');
+            if (speedEl) {
+                // speed is in m/s, convert to km/h. If null, show 0.
+                const kmh = speed ? Math.round(speed * 3.6) : 0;
+                speedEl.innerText = kmh;
+            }
+
             if (!markers.current) {
                 markers.current = L.circleMarker([latitude, longitude], {
                     radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1

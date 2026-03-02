@@ -65,9 +65,9 @@
             <form id="diary-form">
                 <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
                 <input type="text" id="end-point" placeholder="Điểm đến" required>
-                <div style="display:flex; gap:5px;">
+                <div style="display:flex; gap:5px; width: 100%;">
                     <input type="datetime-local" id="departure-time" required style="flex:1;">
-                    <button type="button" onclick="getDiaryLocation()" style="width:50px;" title="Lưu vị trí GPS">📍</button>
+                    <button type="button" onclick="getDiaryLocation()" style="width:50px; flex-shrink: 0;" title="Lưu vị trí GPS">📍</button>
                 </div>
                 <input type="hidden" id="diary-coords">
                 <div style="display:flex; gap:5px; margin-bottom: 10px;">
@@ -78,9 +78,9 @@
                 </div>
                 <div id="photo-preview" style="display:flex; gap:5px; margin-bottom:10px; overflow-x:auto;"></div>
                 <textarea id="food-place" placeholder="Ăn gì ở đâu?"></textarea>
-                <div style="display:flex; gap:10px; align-items:center;">
+                <div style="display:flex; gap:10px; align-items:center; width: 100%;">
                     <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)" style="flex:1;">
-                    <select id="diary-rating" style="width:80px;">
+                    <select id="diary-rating" style="width:120px; flex-shrink: 0;">
                         <option value="5">⭐⭐⭐⭐⭐</option>
                         <option value="4">⭐⭐⭐⭐</option>
                         <option value="3">⭐⭐⭐</option>
@@ -117,9 +117,9 @@
             </div>
             <form id="spending-form">
                 <input type="text" id="spend-item" placeholder="Tên món ăn/đồ dùng" required>
-                <div style="display:flex; gap:5px;">
+                <div style="display:flex; gap:5px; width: 100%;">
                     <input type="number" id="spend-amount" placeholder="Giá tiền" required style="flex:1;">
-                    <select id="spend-category">
+                    <select id="spend-category" style="width: 140px; flex-shrink: 0;">
                         <!-- Categories will be injected by JS -->
                     </select>
                 </div>
@@ -191,6 +191,10 @@
     <template id="map-template">
         <section id="map-section">
             <h2 id="current-trip-title-map" data-i18n="map_title">Bản Đồ Hành Trình</h2>
+            <div id="speedometer-container" style="text-align: center; margin-bottom: 15px; background: #000; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace;">
+                <div style="font-size: 12px; text-transform: uppercase;" data-i18n="current_speed">Tốc độ hiện tại</div>
+                <div style="font-size: 48px; font-weight: bold;"><span id="speed-value">0</span> <small style="font-size: 16px;">km/h</small></div>
+            </div>
             <div id="map"></div>
             <div class="map-controls">
                 <button onclick="markCurrentLocation('start')" style="background:#28a745;" data-i18n="mark_start">Điểm Đi</button>
