@@ -53,8 +53,11 @@ const translations = {
         no_diary: "Không tìm thấy nhật ký.",
         delete_confirm: "Bạn có chắc muốn xóa?",
         copy_success: "Đã copy tọa độ: ",
-        notifications_title: "Thông Báo",
+        notifications_title: "Thông Báo & Chạy Ngầm",
         notify_motion: "Thông báo khi di chuyển (>10km/h):",
+        keep_alive: "Duy trì khi khóa máy (Âm thanh im lặng):",
+        wake_lock: "Giữ màn hình luôn sáng:",
+        keep_alive_note: "* Để theo dõi tốc độ chính xác, không vuốt để đóng hẳn ứng dụng.",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
         prep_2days_title: "Chuẩn bị hành lý!",
@@ -114,8 +117,11 @@ const translations = {
         no_diary: "No diaries found.",
         delete_confirm: "Are you sure you want to delete?",
         copy_success: "Coordinates copied: ",
-        notifications_title: "Notifications",
+        notifications_title: "Notifications & Background",
         notify_motion: "Notify when moving (>10km/h):",
+        keep_alive: "Keep alive (Silent audio loop):",
+        wake_lock: "Keep screen awake:",
+        keep_alive_note: "* For precise speed tracking, do not swipe to close the app.",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
         prep_2days_title: "Prepare your luggage!",
@@ -202,7 +208,11 @@ function escapeHTML(str) {
 let trips = JSON.parse(localStorage.getItem('trips')) || [];
 let currentTripId = localStorage.getItem('currentTripId') || null;
 let motionNotifyEnabled = localStorage.getItem('motionNotifyEnabled') === 'true';
+let keepAliveEnabled = localStorage.getItem('keepAliveEnabled') === 'true';
+let wakeLockEnabled = localStorage.getItem('wakeLockEnabled') === 'true';
 let hasNotifiedStart = false;
+let wakeLock = null;
+let audioContext = null;
 
 function saveTrips() {
     localStorage.setItem('trips', JSON.stringify(trips));
@@ -326,6 +336,10 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('diary');
     checkTripPrepNotifications();
     startGlobalGpsWatch();
+
+    // Auto-restore background modes if enabled
+    if (keepAliveEnabled) toggleKeepAlive(true);
+    if (wakeLockEnabled) toggleWakeLock(true);
 });
 
 function startGlobalGpsWatch() {
@@ -827,6 +841,10 @@ function initSettings() {
     document.getElementById('emergency-info').value = emergencyInfo;
     const notifyToggle = document.getElementById('notify-motion-toggle');
     if (notifyToggle) notifyToggle.checked = motionNotifyEnabled;
+    const keepToggle = document.getElementById('keep-alive-toggle');
+    if (keepToggle) keepToggle.checked = keepAliveEnabled;
+    const wakeToggle = document.getElementById('wake-lock-toggle');
+    if (wakeToggle) wakeToggle.checked = wakeLockEnabled;
     document.getElementById('lang-select').value = currentLang;
     document.getElementById('theme-color-picker').value = primaryColor;
     renderChecklist();
@@ -875,6 +893,61 @@ function saveEmergencyInfo() {
     emergencyInfo = document.getElementById('emergency-info').value;
     syncTripData();
     alert("Đã lưu thông tin khẩn cấp!");
+}
+
+function toggleKeepAlive(enabled) {
+    keepAliveEnabled = enabled;
+    localStorage.setItem('keepAliveEnabled', enabled);
+    if (enabled) {
+        startSilentAudio();
+    } else {
+        stopSilentAudio();
+    }
+}
+
+function startSilentAudio() {
+    try {
+        if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioContext.state === 'suspended') audioContext.resume();
+
+        const bufferSize = 2 * audioContext.sampleRate;
+        const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = 0; // Silent
+        }
+
+        const whiteNoise = audioContext.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+        whiteNoise.connect(audioContext.destination);
+        whiteNoise.start();
+        window.silentAudioSource = whiteNoise;
+    } catch (e) { console.error("Audio KeepAlive Error:", e); }
+}
+
+function stopSilentAudio() {
+    if (window.silentAudioSource) {
+        window.silentAudioSource.stop();
+        window.silentAudioSource = null;
+    }
+}
+
+async function toggleWakeLock(enabled) {
+    wakeLockEnabled = enabled;
+    localStorage.setItem('wakeLockEnabled', enabled);
+    if (enabled) {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+            }
+        } catch (err) { console.error("WakeLock Error:", err); }
+    } else {
+        if (wakeLock) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
 }
 
 function toggleMotionNotify(enabled) {

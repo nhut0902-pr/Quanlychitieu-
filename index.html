@@ -157,13 +157,30 @@
             <hr>
 
             <div class="extra-group">
-                <h3 data-i18n="notifications_title">Thông Báo</h3>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span data-i18n="notify_motion">Thông báo khi di chuyển (>10km/h):</span>
-                    <label class="switch">
-                        <input type="checkbox" id="notify-motion-toggle" onchange="toggleMotionNotify(this.checked)">
-                        <span class="slider round"></span>
-                    </label>
+                <h3 data-i18n="notifications_title">Thông Báo & Chạy Ngầm</h3>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span data-i18n="notify_motion">Thông báo khi di chuyển (>10km/h):</span>
+                        <label class="switch">
+                            <input type="checkbox" id="notify-motion-toggle" onchange="toggleMotionNotify(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span data-i18n="keep_alive">Chạy ngầm (khi khóa màn hình):</span>
+                        <label class="switch">
+                            <input type="checkbox" id="keep-alive-toggle" onchange="toggleKeepAlive(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span data-i18n="wake_lock">Giữ màn hình luôn sáng:</span>
+                        <label class="switch">
+                            <input type="checkbox" id="wake-lock-toggle" onchange="toggleWakeLock(this.checked)">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <small style="font-size:11px; opacity:0.7;" data-i18n="keep_alive_note">* Để theo dõi tốc độ chính xác, không vuốt để đóng hẳn ứng dụng.</small>
                 </div>
             </div>
 
