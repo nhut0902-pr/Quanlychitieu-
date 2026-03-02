@@ -2,7 +2,7 @@
     --bg-color: #f4f4f4;
     --card-bg: white;
     --text-color: #333;
-    --primary-color: #4CAF50;
+    --primary-color: #3f51b5;
     --border-color: #ddd;
     --header-text: white;
 }
@@ -11,7 +11,7 @@ body.dark-mode {
     --bg-color: #121212;
     --card-bg: #1e1e1e;
     --text-color: #e0e0e0;
-    --primary-color: #81c784;
+    --primary-color: #7986cb;
     --border-color: #333;
     --header-text: #e0e0e0;
 }
@@ -94,7 +94,7 @@ button {
 }
 
 button:active {
-    background-color: #45a049;
+    background-color: #303f9f;
 }
 
 .bottom-nav {
@@ -157,7 +157,7 @@ button:active {
 
 .progress-fill {
     height: 100%;
-    background: #4CAF50;
+    background: #3f51b5;
     width: 0%;
     transition: width 0.3s;
 }
@@ -184,7 +184,7 @@ li {
 }
 
 .diary-item strong {
-    color: #2e7d32;
+    color: #3f51b5;
     font-size: 1.1em;
 }
 

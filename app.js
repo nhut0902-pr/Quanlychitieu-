@@ -213,7 +213,7 @@ function initTrips() {
 function renderTrips() {
     const list = document.getElementById('trip-list');
     list.innerHTML = trips.map(t => `
-        <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 5px solid ${t.id == currentTripId ? '#4CAF50' : '#ccc'}">
+        <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 5px solid ${t.id == currentTripId ? '#3f51b5' : '#ccc'}">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div onclick="switchTrip(${t.id})" style="flex:1;">
                     <strong>${escapeHTML(t.name)}</strong><br>
@@ -483,7 +483,7 @@ function updateBudgetUI() {
         info.style.color = '#f44336';
         info.style.fontWeight = 'bold';
     } else {
-        progress.style.backgroundColor = percentage > 90 ? '#ff9800' : '#4CAF50';
+        progress.style.backgroundColor = percentage > 90 ? '#ff9800' : '#3f51b5';
         info.style.color = '';
         info.style.fontWeight = 'normal';
     }
@@ -609,7 +609,7 @@ async function generateTripReport() {
     reportWindow.document.write(`
         <html>
         <head><title>Báo Cáo: ${trip.name}</title>
-        <style>body{font-family:sans-serif; padding:20px; line-height:1.6;} .header{text-align:center; border-bottom:2px solid #4CAF50; padding-bottom:10px;}</style>
+        <style>body{font-family:sans-serif; padding:20px; line-height:1.6;} .header{text-align:center; border-bottom:2px solid #3f51b5; padding-bottom:10px;}</style>
         </head>
         <body>
             <div class="header"><h1>TỔNG KẾT CHUYẾN ĐI: ${trip.name}</h1></div>
