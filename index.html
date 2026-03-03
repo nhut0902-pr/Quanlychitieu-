@@ -2,19 +2,26 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nhật Ký Chuyến Đi Offline</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#3f51b5">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/000000/map-marker.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 </head>
 <body>
     <div id="app">
         <header>
-            <h1>Chuyến Đi Của Tôi</h1>
-            <button id="theme-toggle" onclick="toggleDarkMode()" aria-label="Đổi chế độ sáng/tối">🌙</button>
+            <h1>My Travel Journey</h1>
+            <button id="theme-toggle" onclick="toggleDarkMode()" aria-label="Đổi chế độ sáng/tối">
+                <svg id="theme-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Moon icon will be set by JS -->
+                </svg>
+            </button>
         </header>
 
         <main id="content">
@@ -55,13 +62,16 @@
             <h2 data-i18n="nav_trips">Quản Lý Chuyến Đi</h2>
             <form id="trip-form">
                 <input type="text" id="trip-name" placeholder="Tên chuyến đi mới (vd: Đà Lạt 2024)" required>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <label style="font-size:14px; white-space:nowrap;" data-i18n="start_date_label">Ngày bắt đầu:</label>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <label style="font-size:14px; font-weight:600; color:var(--text-muted); white-space:nowrap;" data-i18n="start_date_label">Ngày bắt đầu:</label>
                     <input type="date" id="trip-start-date" required style="flex:1;">
                 </div>
-                <button type="submit" data-i18n="add_trip">Tạo Chuyến Đi Mới</button>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span data-i18n="add_trip">Tạo Chuyến Đi Mới</span>
+                </button>
             </form>
-            <div id="trip-list" style="margin-top: 20px;">
+            <div id="trip-list" style="margin-top: 24px;">
                 <!-- Trips will be listed here -->
             </div>
         </section>
@@ -73,30 +83,36 @@
             <form id="diary-form">
                 <input type="text" id="start-point" placeholder="Điểm xuất phát" required>
                 <input type="text" id="end-point" placeholder="Điểm đến" required>
-                <div style="display:flex; gap:5px; width: 100%;">
+                <div style="display:flex; gap:8px; width: 100%;">
                     <input type="datetime-local" id="departure-time" required style="flex:1;">
-                    <button type="button" onclick="getDiaryLocation()" style="width:50px; flex-shrink: 0;" title="Lưu vị trí GPS">📍</button>
+                    <button type="button" onclick="getDiaryLocation()" style="width:48px; flex-shrink: 0; padding: 0;" title="Lưu vị trí GPS">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    </button>
                 </div>
                 <input type="hidden" id="diary-coords">
-                <div style="display:flex; gap:5px; margin-bottom: 10px;">
-                    <label style="flex:1; background:#eee; padding:10px; border-radius:8px; text-align:center; cursor:pointer;">
-                        📷 Thêm Ảnh
+                <div style="display:flex; gap:8px; margin-bottom: 4px;">
+                    <label style="flex:1; background:var(--bg-body); color:var(--primary); font-weight:600; padding:12px; border:1.5px dashed var(--primary); border-radius:10px; text-align:center; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                        <span data-i18n="add_photo">Thêm Ảnh</span>
                         <input type="file" id="diary-photos" accept="image/*" multiple style="display:none;" onchange="handlePhotoSelect(event)">
                     </label>
                 </div>
-                <div id="photo-preview" style="display:flex; gap:5px; margin-bottom:10px; overflow-x:auto;"></div>
-                <textarea id="food-place" placeholder="Ăn gì ở đâu?"></textarea>
-                <div style="display:flex; gap:10px; align-items:center; width: 100%;">
+                <div id="photo-preview" style="display:flex; gap:8px; margin-bottom:8px; overflow-x:auto; padding-bottom:4px;"></div>
+                <textarea id="food-place" placeholder="Ăn gì ở đâu?" rows="3"></textarea>
+                <div style="display:flex; gap:12px; align-items:center; width: 100%;">
                     <input type="number" id="trip-cost" placeholder="Giá cả (ước tính)" style="flex:1;">
-                    <select id="diary-rating" style="width:120px; flex-shrink: 0;">
-                        <option value="5">⭐⭐⭐⭐⭐</option>
-                        <option value="4">⭐⭐⭐⭐</option>
-                        <option value="3">⭐⭐⭐</option>
-                        <option value="2">⭐⭐</option>
-                        <option value="1">⭐</option>
+                    <select id="diary-rating" style="width:130px; flex-shrink: 0;">
+                        <option value="5">5 Stars</option>
+                        <option value="4">4 Stars</option>
+                        <option value="3">3 Stars</option>
+                        <option value="2">2 Stars</option>
+                        <option value="1">1 Star</option>
                     </select>
                 </div>
-                <button type="submit" data-i18n="add_diary">Thêm Nhật Ký</button>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    <span data-i18n="add_diary">Thêm Nhật Ký</span>
+                </button>
             </form>
             <div class="search-box">
                 <input type="text" id="diary-search" placeholder="Tìm kiếm nhật ký..." oninput="renderDiaries()">
@@ -108,15 +124,15 @@
     <template id="spending-template">
         <section id="spending-section">
             <h2 id="current-trip-title-spending">Quản Lý Chi Tiêu</h2>
-            <div id="spending-analytics" class="extra-group" style="margin-bottom: 20px; background: rgba(0,0,0,0.03); padding: 15px; border-radius: 8px;">
-                <h3 style="margin-top:0" data-i18n="spending_analytics">Phân Tích Chi Tiêu</h3>
-                <div style="display: flex; flex-direction: column; align-items: center;">
-                    <canvas id="spending-chart" width="200" height="200" style="max-width: 100%;"></canvas>
-                    <div id="chart-legend" style="margin-top: 10px; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 12px;"></div>
+            <div id="spending-analytics" style="margin-bottom: 24px; background: var(--bg-body); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border);">
+                <h3 style="margin-top:0; font-size: 16px; margin-bottom:16px;" data-i18n="spending_analytics">Phân Tích Chi Tiêu</h3>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                    <canvas id="spending-chart" width="200" height="200" style="max-width: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));"></canvas>
+                    <div id="chart-legend" style="width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;"></div>
                 </div>
             </div>
             <div class="budget-container">
-                <label for="budget-limit" data-i18n="budget_label">Ngân sách:</label>
+                <label style="font-size: 14px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; display: block;" data-i18n="budget_label">Ngân sách dự kiến:</label>
                 <input type="number" id="budget-limit" placeholder="Đặt ngân sách" value="1000000">
                 <div class="progress-bar">
                     <div id="budget-progress" class="progress-fill"></div>
@@ -125,13 +141,15 @@
             </div>
             <form id="spending-form">
                 <input type="text" id="spend-item" placeholder="Tên món ăn/đồ dùng" required>
-                <div style="display:flex; gap:5px; width: 100%;">
+                <div style="display:flex; gap:12px; width: 100%;">
                     <input type="number" id="spend-amount" placeholder="Giá tiền" required style="flex:1;">
-                    <select id="spend-category" style="width: 140px; flex-shrink: 0;">
-                        <!-- Categories will be injected by JS -->
+                    <select id="spend-category" style="width: 150px; flex-shrink: 0;">
                     </select>
                 </div>
-                <button type="submit" data-i18n="add_spending">Ghi Chi Tiêu</button>
+                <button type="submit">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    <span data-i18n="add_spending">Ghi Chi Tiêu</span>
+                </button>
             </form>
             <ul id="spending-list"></ul>
         </section>
@@ -143,84 +161,104 @@
 
             <div class="extra-group">
                 <h3 data-i18n="appearance_lang">Giao diện & Ngôn ngữ</h3>
-                <div style="display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; flex-direction:column; gap:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="select_language">Ngôn ngữ:</span>
-                        <select id="lang-select" onchange="changeLanguage(this.value)" style="width:120px;">
+                        <span style="font-weight:500;" data-i18n="select_language">Ngôn ngữ:</span>
+                        <select id="lang-select" onchange="changeLanguage(this.value)" style="width:140px;">
                             <option value="vi">Tiếng Việt</option>
                             <option value="en">English</option>
                         </select>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="theme_color">Màu chủ đạo:</span>
-                        <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:120px; height:35px; padding:0; border:none;">
+                        <span style="font-weight:500;" data-i18n="theme_color">Màu chủ đạo:</span>
+                        <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:60px; height:35px; padding:2px; border:1px solid var(--border); border-radius:6px; cursor:pointer;">
                     </div>
                 </div>
             </div>
 
-            <hr>
+            <hr style="border:none; border-top:1px solid var(--border); margin:24px 0;">
 
-            <div class="extra-group" style="border: 2px solid var(--primary-color);">
-                <h3 data-i18n="notifications_title">Thông Báo & Chạy Ngầm</h3>
-                <div style="display:flex; flex-direction:column; gap:10px;">
+            <div class="extra-group" style="padding: 16px; background: rgba(99, 102, 241, 0.05); border-radius: 12px; border: 1px solid var(--primary);">
+                <h3 style="margin-top:0" data-i18n="notifications_title">Thông Báo & Chạy Ngầm</h3>
+                <div style="display:flex; flex-direction:column; gap:16px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="notify_motion">Thông báo khi di chuyển (>10km/h):</span>
+                        <span style="font-size:14px;" data-i18n="notify_motion">Thông báo di chuyển (>10km/h)</span>
                         <label class="switch">
                             <input type="checkbox" id="notify-motion-toggle" onchange="toggleMotionNotify(this.checked)">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; color: #d32f2f; font-weight: bold;">
-                        <span data-i18n="keep_alive">Duy trì khi chạy ngầm (Âm thanh im lặng):</span>
-                        <label class="switch">
-                            <input type="checkbox" id="keep-alive-toggle" onchange="toggleKeepAlive(this.checked)">
-                            <span class="slider round"></span>
+                            <span class="slider"></span>
                         </label>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="wake_lock">Giữ màn hình luôn sáng (Wake Lock):</span>
+                        <span style="font-size:14px; color:#ef4444; font-weight:600;" data-i18n="keep_alive">Chạy ngầm (Âm thanh im lặng)</span>
                         <label class="switch">
-                            <input type="checkbox" id="wake-lock-toggle" onchange="toggleWakeLock(this.checked)">
-                            <span class="slider round"></span>
+                            <input type="checkbox" id="keep-alive-toggle" onchange="toggleKeepAlive(this.checked)">
+                            <span class="slider"></span>
                         </label>
                     </div>
-                    <small style="color:#d32f2f; font-weight:bold; font-size:11px;" data-i18n="keep_alive_note">* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.</small>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:14px;" data-i18n="wake_lock">Luôn sáng màn hình</span>
+                        <label class="switch">
+                            <input type="checkbox" id="wake-lock-toggle" onchange="toggleWakeLock(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 8px; display: flex; gap: 8px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2" style="flex-shrink:0; margin-top:2px;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <small style="color:#ef4444; font-weight:500; font-size:11px; line-height:1.4;" data-i18n="keep_alive_note">* Bật cả 2 để GPS cập nhật chính xác nhất khi thu nhỏ app.</small>
+                    </div>
                 </div>
             </div>
 
-            <hr>
+            <hr style="border:none; border-top:1px solid var(--border); margin:24px 0;">
 
             <div class="extra-group">
                 <h3 data-i18n="checklist_title">Danh Sách Chuẩn Bị</h3>
-                <form id="checklist-form" style="display:flex; gap:5px; margin-bottom:10px;">
+                <form id="checklist-form" style="display:flex; gap:8px; margin-bottom:12px;">
                     <input type="text" id="checklist-item" placeholder="Thêm đồ dùng..." required style="flex:1;">
-                    <button type="submit" style="width:auto; padding:0 15px;">Thêm</button>
+                    <button type="submit" style="width:auto; padding:0 16px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    </button>
                 </form>
                 <ul id="checklist-list"></ul>
             </div>
 
-            <hr>
+            <hr style="border:none; border-top:1px solid var(--border); margin:24px 0;">
 
             <div class="extra-group">
                 <h3 data-i18n="emergency_title">Thông Tin Khẩn Cấp</h3>
-                <textarea id="emergency-info" placeholder="Liên hệ người thân, nhóm máu, dị ứng..." style="height:100px;"></textarea>
-                <button onclick="saveEmergencyInfo()" data-i18n="save_btn">Lưu Thông Tin</button>
+                <textarea id="emergency-info" placeholder="Liên hệ người thân, nhóm máu, dị ứng..." style="height:100px; margin-bottom:12px;"></textarea>
+                <button onclick="saveEmergencyInfo()" style="background:var(--secondary);">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    <span data-i18n="save_btn">Lưu Thông Tin</span>
+                </button>
             </div>
 
-            <hr>
+            <hr style="border:none; border-top:1px solid var(--border); margin:24px 0;">
 
             <div class="extra-group">
                 <h3 data-i18n="data_report">Dữ Liệu & Báo Cáo</h3>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <button onclick="generateTripReport()" style="background:var(--primary-color); grid-column: span 2;" data-i18n="export_report">Xuất Báo Cáo Tổng Kết (PDF)</button>
-                    <button onclick="exportData()" style="background:#2196F3;" data-i18n="export_json">Xuất Dữ Liệu (JSON)</button>
-                    <button onclick="document.getElementById('import-file').click()" style="background:#ff9800;" data-i18n="import_json">Nhập Dữ Liệu</button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <button onclick="generateTripReport()" style="grid-column: span 2;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span data-i18n="export_report">Xuất Báo Cáo PDF</span>
+                    </button>
+                    <button onclick="exportData()" style="background: #3b82f6;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        <span data-i18n="export_json">Xuất JSON</span>
+                    </button>
+                    <button onclick="document.getElementById('import-file').click()" style="background: #f59e0b;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        <span data-i18n="import_json">Nhập Dữ Liệu</span>
+                    </button>
                 </div>
                 <input type="file" id="import-file" style="display:none" onchange="importData(event)">
-                <button onclick="clearAllData()" style="background:#f44336; margin-top:10px;" data-i18n="clear_all">Xóa Tất Cả Dữ Liệu</button>
+                <button onclick="clearAllData()" style="background:#ef4444; margin-top:16px; width:100%;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    <span data-i18n="clear_all">Xóa Tất Cả</span>
+                </button>
             </div>
 
-            <div style="margin-top: 30px; text-align: center; font-size: 14px; opacity: 0.7;">
+            <div style="margin-top: 48px; text-align: center; font-size: 13px; color: var(--text-muted);">
                 <p>Powered By <strong>Nhutcoder</strong></p>
             </div>
         </section>
@@ -229,30 +267,37 @@
     <template id="map-template">
         <section id="map-section">
             <h2 id="current-trip-title-map" data-i18n="map_title">Bản Đồ Hành Trình</h2>
-            <div id="speedometer-container" style="text-align: center; margin-bottom: 15px; background: #000; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; display: flex; justify-content: space-around; align-items: center;">
-                <div>
-                    <div style="font-size: 10px; text-transform: uppercase;" data-i18n="current_speed">Tốc độ</div>
-                    <div style="font-size: 32px; font-weight: bold;"><span id="speed-value">0</span> <small style="font-size: 12px;">km/h</small></div>
+            <div id="speedometer-container">
+                <div style="text-align: center;">
+                    <div class="speed-unit" data-i18n="current_speed">Speed</div>
+                    <div class="speed-value"><span id="speed-value">0</span> <small style="font-size: 14px; font-weight: 500;">km/h</small></div>
                 </div>
-                <div style="width: 1px; height: 40px; background: #333;"></div>
-                <div>
-                    <div style="font-size: 10px; text-transform: uppercase;" data-i18n="total_distance">Quãng đường</div>
-                    <div style="font-size: 32px; font-weight: bold;"><span id="total-distance-value">0.00</span> <small style="font-size: 12px;">km</small></div>
+                <div style="width: 1px; height: 50px; background: rgba(255,255,255,0.1);"></div>
+                <div style="text-align: center;">
+                    <div class="speed-unit" data-i18n="total_distance">Distance</div>
+                    <div class="speed-value"><span id="total-distance-value">0.00</span> <small style="font-size: 14px; font-weight: 500;">km</small></div>
                 </div>
             </div>
             <div id="map"></div>
-            <div id="milestone-history" style="margin-top: 15px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
-                <h3 style="margin-top: 0; font-size: 14px; display: flex; align-items: center; justify-content: space-between;" data-i18n="milestone_history">Lịch sử mốc quãng đường</h3>
+            <div id="milestone-history" style="margin-top: 20px; background: var(--bg-body); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);">
+                <h3 style="margin-top: 0; font-size: 15px; margin-bottom:12px; display: flex; align-items: center; justify-content: space-between;" data-i18n="milestone_history">Lịch sử mốc quãng đường</h3>
                 <ul id="milestone-list" style="list-style: none; padding: 0; max-height: 150px; overflow-y: auto;">
-                    <!-- Milestones will be listed here -->
                 </ul>
             </div>
             <div class="map-controls">
-                <button id="pip-btn" onclick="togglePiP()" style="background:#673ab7; width:100%; margin-bottom:10px;" data-i18n="pip_btn">Hiện Cửa Sổ Nổi (Bản Đồ & Tốc Độ)</button>
-                <button onclick="markCurrentLocation('start')" style="background:#28a745;" data-i18n="mark_start">Điểm Đi</button>
-                <button onclick="markCurrentLocation('dest')" style="background:#007bff;" data-i18n="mark_dest">Điểm Đến</button>
-                <button onclick="markCurrentLocation('return')" style="background:#dc3545;" data-i18n="mark_return">Điểm Về</button>
-                <button onclick="recenterMap()" style="background:#6c757d; width:100%;" data-i18n="recenter_btn">Tâm Vị Trí Hiện Tại</button>
+                <button id="pip-btn" onclick="togglePiP()" style="background:var(--primary); width:100%; margin-bottom:12px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="13" y="10" width="7" height="5" rx="1"></rect></svg>
+                    <span data-i18n="pip_btn">Hiện Cửa Sổ Nổi (PiP)</span>
+                </button>
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; width:100%;">
+                    <button onclick="markCurrentLocation('start')" style="background:#10b981; padding: 10px 5px; font-size:13px;" data-i18n="mark_start">Điểm Đi</button>
+                    <button onclick="markCurrentLocation('dest')" style="background:#3b82f6; padding: 10px 5px; font-size:13px;" data-i18n="mark_dest">Điểm Đến</button>
+                    <button onclick="markCurrentLocation('return')" style="background:#ef4444; padding: 10px 5px; font-size:13px;" data-i18n="mark_return">Điểm Về</button>
+                </div>
+                <button onclick="recenterMap()" style="background:var(--secondary); width:100%; margin-top:8px;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+                    <span data-i18n="recenter_btn">Tâm Vị Trí</span>
+                </button>
             </div>
         </section>
     </template>
@@ -262,7 +307,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js');
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log("SW error", err));
             });
         }
     </script>

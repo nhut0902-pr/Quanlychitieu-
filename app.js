@@ -44,10 +44,10 @@ const translations = {
         add_spending: "Ghi Chi Tiêu",
         checklist_placeholder: "Thêm đồ dùng...",
         add_btn: "Thêm",
-        cat_food: "🍴 Ăn uống",
-        cat_transport: "🚗 Di chuyển",
-        cat_hotel: "🏨 Lưu trú",
-        cat_other: "🏷️ Khác",
+        cat_food: "Ăn uống",
+        cat_transport: "Di chuyển",
+        cat_hotel: "Lưu trú",
+        cat_other: "Khác",
         spending_analytics: "Phân Tích Chi Tiêu",
         map_title: "Bản Đồ Hành Trình",
         mark_start: "Điểm Đi",
@@ -67,7 +67,7 @@ const translations = {
         keep_alive_note: "* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
-        distance_notif: "Bạn đã di chuyển được {n} km. (📍 {coords})",
+        distance_notif: "Bạn đã di chuyển được {n} km. ({coords})",
         milestone_saved: "Đã lưu mốc {n} km!",
         milestone_history: "Lịch sử mốc quãng đường",
         no_milestones: "Chưa có mốc quãng đường nào",
@@ -115,10 +115,10 @@ const translations = {
         add_spending: "Record Spending",
         checklist_placeholder: "Add item...",
         add_btn: "Add",
-        cat_food: "🍴 Food",
-        cat_transport: "🚗 Transport",
-        cat_hotel: "🏨 Hotel",
-        cat_other: "🏷️ Other",
+        cat_food: "Food",
+        cat_transport: "Transport",
+        cat_hotel: "Hotel",
+        cat_other: "Other",
         spending_analytics: "Spending Analytics",
         map_title: "Journey Map",
         mark_start: "Start Point",
@@ -138,7 +138,7 @@ const translations = {
         keep_alive_note: "* Enable both for best PiP/GPS updates in background.",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
-        distance_notif: "You have traveled {n} km. (📍 {coords})",
+        distance_notif: "You have traveled {n} km. ({coords})",
         milestone_saved: "Milestone {n} km saved!",
         milestone_history: "Distance Milestones",
         no_milestones: "No milestones yet",
@@ -156,7 +156,7 @@ const translations = {
 };
 
 let currentLang = localStorage.getItem('lang') || 'vi';
-let primaryColor = localStorage.getItem('primaryColor') || '#3f51b5';
+let primaryColor = localStorage.getItem('primaryColor') || '#6366f1';
 
 // IndexedDB Setup for Photos
 const DB_NAME = 'TravelDiaryDB';
@@ -252,7 +252,7 @@ let emergencyInfo = '';
 let isDarkMode = localStorage.getItem('darkMode') === 'true';
 
 function applyThemeColor(color) {
-    document.documentElement.style.setProperty('--primary-color', color);
+    document.documentElement.style.setProperty('--primary', color);
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) metaThemeColor.setAttribute('content', color);
 }
@@ -331,6 +331,7 @@ function syncTripData() {
 
 document.addEventListener('DOMContentLoaded', () => {
     if (isDarkMode) document.body.classList.add('dark-mode');
+    updateThemeIcon();
     applyThemeColor(primaryColor);
     updateLanguage();
 
@@ -438,7 +439,7 @@ function startGlobalGpsWatch() {
             if (currentSection === 'map' && map) {
                 if (!markers.current && currentLocation) {
                     markers.current = L.circleMarker(currentLocation, {
-                        radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+                        radius: 10, fillColor: '#6366f1', color: '#fff', weight: 3, fillOpacity: 1
                     }).addTo(map).bindPopup(`Bạn đang ở đây`);
                     if (Object.keys(savedMarkers).length === 0) map.setView(currentLocation, 15);
                 } else if (markers.current) {
@@ -477,9 +478,15 @@ function renderMilestones() {
         return;
     }
     list.innerHTML = milestones.slice().reverse().map(m => `
-        <li style="font-size:12px; border-bottom:1px solid #eee; padding:5px 0;">
-            <strong>${m.km} km</strong> - <small>${new Date(m.time).toLocaleTimeString()}</small><br>
-            <span style="color:#666;">📍 ${m.coords}</span>
+        <li style="font-size:12px; border-bottom:1px solid var(--border); padding:8px 0;">
+            <div style="display:flex; justify-content:space-between;">
+                <strong>${m.km} km</strong>
+                <small style="color:var(--text-muted);">${new Date(m.time).toLocaleTimeString()}</small>
+            </div>
+            <div style="color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-top:2px;">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <span>${m.coords}</span>
+            </div>
         </li>
     `).join('');
 }
@@ -540,7 +547,19 @@ function toggleDarkMode() {
     isDarkMode = !isDarkMode;
     document.body.classList.toggle('dark-mode');
     localStorage.setItem('darkMode', isDarkMode);
-    document.getElementById('theme-toggle').innerText = isDarkMode ? '☀️' : '🌙';
+    updateThemeIcon();
+}
+
+function updateThemeIcon() {
+    const icon = document.getElementById('theme-icon');
+    if (!icon) return;
+    if (isDarkMode) {
+        // Sun icon
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+    } else {
+        // Moon icon
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+    }
 }
 
 function showSection(section) {
@@ -612,15 +631,22 @@ function renderTrips() {
     const deleteText = translations[currentLang].delete_btn;
 
     list.innerHTML = trips.map(t => `
-        <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 5px solid ${t.id == currentTripId ? 'var(--primary-color)' : '#ccc'}">
+        <div class="diary-item ${t.id == currentTripId ? 'active-trip' : ''}" style="cursor:pointer; border-left: 4px solid ${t.id == currentTripId ? 'var(--primary)' : 'transparent'}">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div onclick="switchTrip(${t.id})" style="flex:1;">
-                    <strong>${escapeHTML(t.name)}</strong><br>
-                    <small>${t.diaries.length} ${diaryText} | ${t.spendings.length} ${spendText}</small>
+                    <div style="font-weight:700; font-size:16px; margin-bottom:4px;">${escapeHTML(t.name)}</div>
+                    <div style="display:flex; gap:12px; color:var(--text-muted); font-size:12px;">
+                        <span style="display:flex; align-items:center; gap:4px;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,4H3A2,2 0 0,0 1,6V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V6A2,2 0 0,0 21,4M21,19H3V6H21V19M19,9H5V7H19V9M19,13H5V11H19V13M19,17H5V15H19V17Z"/></svg> ${t.diaries.length} ${diaryText}</span>
+                        <span style="display:flex; align-items:center; gap:4px;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/></svg> ${t.spendings.length} ${spendText}</span>
+                    </div>
+                    <div style="margin-top:4px; font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                        <span>${t.startDate || '---'}</span>
+                    </div>
                 </div>
-                <div>
-                    <button onclick="deleteTrip(${t.id})" style="background:none; color:red; padding:5px;">${deleteText}</button>
-                </div>
+                <button onclick="deleteTrip(${t.id})" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; padding:8px; border-radius:8px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
             </div>
         </div>
     `).join('');
@@ -709,6 +735,15 @@ function getDiaryLocation() {
     }, () => alert("Lỗi lấy vị trí"));
 }
 
+function getRatingStars(rating) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        const color = i <= rating ? '#fbbf24' : '#e5e7eb';
+        stars += `<svg viewBox="0 0 24 24" width="14" height="14" fill="${color}" style="margin-right:1px;"><path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z"/></svg>`;
+    }
+    return stars;
+}
+
 async function renderDiaries() {
     const list = document.getElementById('diary-list');
     const searchTerm = document.getElementById('diary-search')?.value.toLowerCase() || '';
@@ -720,12 +755,11 @@ async function renderDiaries() {
     );
 
     if (filtered.length === 0) {
-        list.innerHTML = `<p style="text-align:center; color:#888;">${translations[currentLang].no_diary}</p>`;
+        list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 40px 0;">${translations[currentLang].no_diary}</p>`;
         return;
     }
 
-    const deleteText = currentLang === 'vi' ? 'Xóa' : 'Delete';
-    const coordText = currentLang === 'vi' ? 'Tọa độ' : 'Coords';
+    const deleteText = translations[currentLang].delete_btn;
     const viewMapText = currentLang === 'vi' ? 'Xem bản đồ' : 'View map';
 
     list.innerHTML = '';
@@ -736,34 +770,55 @@ async function renderDiaries() {
         let photosHtml = '';
         if (d.hasPhotos) {
             const photos = await getPhotos(d.id);
-            photosHtml = `<div style="display:flex; gap:5px; margin-top:8px; overflow-x:auto;">
-                ${photos.map(p => `<img src="${p}" style="height:80px; border-radius:4px;" onclick="viewFullImage('${p}')">`).join('')}
+            photosHtml = `<div style="display:flex; gap:8px; margin-top:12px; overflow-x:auto; padding-bottom:4px;">
+                ${photos.map(p => `<img src="${p}" style="height:100px; width:auto; border-radius:var(--radius); object-fit:cover;" onclick="viewFullImage('${p}')">`).join('')}
             </div>`;
         }
 
         const coordsDisplay = d.coords ? `
-            <div style="font-size:11px; color:#666; margin-top:5px; background:#f9f9f9; padding:5px; border-radius:4px;">
-                📍 Tọa độ: ${d.coords}
-                <button onclick="copyCoords('${d.coords}')" style="margin-left:5px; font-size:10px; padding:2px 4px;">Copy</button>
-                <a href="https://www.google.com/maps/search/?api=1&query=${d.coords}" target="_blank" style="margin-left:5px; font-size:10px; color:#2196F3;">G-Maps</a>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:12px; background:var(--bg-body); padding:8px 12px; border-radius:8px; border: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${d.coords}</span>
+                <button onclick="copyCoords('${d.coords}')" style="background:none; border:none; color:var(--primary); font-weight:600; padding:4px; font-size:11px;">COPY</button>
             </div>
         ` : '';
 
         item.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <strong>${escapeHTML(d.start)} ➔ ${escapeHTML(d.end)}</strong> ${'⭐'.repeat(d.rating)}<br>
-                    <small>🕒 ${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</small>
+                <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                        <strong style="font-size:16px;">${escapeHTML(d.start)}</strong>
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--text-muted)" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        <strong style="font-size:16px;">${escapeHTML(d.end)}</strong>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; color:var(--text-muted); font-size:13px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        <span>${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                    </div>
                 </div>
-                <button onclick="deleteDiary(${d.id})" style="background:none; color:red; padding:5px; font-size:12px;">${deleteText}</button>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+                     <button onclick="deleteDiary(${d.id})" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; padding:6px; border-radius:6px; line-height:0;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                     </button>
+                     <div style="display:flex;">${getRatingStars(d.rating)}</div>
+                </div>
             </div>
-            <div style="margin-top:8px; border-top:1px dashed #eee; padding-top:8px;">
-                <em>🍴 ${escapeHTML(d.food) || (currentLang === 'vi' ? 'Không ghi chú' : 'No notes')}</em><br>
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
+                <div style="display:flex; align-items:flex-start; gap:8px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--primary)" stroke-width="2" style="margin-top:2px; flex-shrink:0;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>
+                    <em style="color:var(--text-body); font-style:normal; font-size:14px;">${escapeHTML(d.food) || (currentLang === 'vi' ? 'Chưa có ghi chú món ăn' : 'No food notes')}</em>
+                </div>
                 ${photosHtml}
                 ${coordsDisplay}
-                <div style="display:flex; justify-content:space-between; margin-top:5px;">
-                    <span style="color:#e91e63; font-weight:bold;">💰 ${Number(d.cost || 0).toLocaleString()}đ</span>
-                    ${d.coords ? `<button onclick="showOnMap(${d.coords})" style="padding:2px 5px; font-size:10px;">📍 ${viewMapText}</button>` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                        <span style="color:#10b981; font-weight:700; font-size:16px;">${Number(d.cost || 0).toLocaleString()}đ</span>
+                    </div>
+                    ${d.coords ? `<button onclick="showOnMap(${d.coords})" style="padding:6px 12px; font-size:12px; background:var(--bg-body); color:var(--text-body); border:1px solid var(--border); border-radius:6px; display:flex; align-items:center; gap:4px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                        ${viewMapText}
+                    </button>` : ''}
                 </div>
             </div>
         `;
@@ -858,15 +913,20 @@ function initSpending() {
 function renderSpendings() {
     const list = document.getElementById('spending-list');
     if (spendings.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#888;">Chưa có chi tiêu nào.</p>';
+        list.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding: 20px 0;">Chưa có chi tiêu nào.</p>';
         return;
     }
     list.innerHTML = spendings.slice().reverse().map(s => `
-        <li>
-            <span>${escapeHTML(s.name)} <small style="color:#888;">(${escapeHTML(s.category)})</small></span>
+        <li style="background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-                <span style="font-weight:bold;">${s.amount.toLocaleString()}đ</span>
-                <button onclick="deleteSpending(${s.id})" style="background:none; color:red; padding:0 0 0 10px; font-size:12px; border:none;">✕</button>
+                <div style="font-weight:600; font-size:15px; color:var(--text-body);">${escapeHTML(s.name)}</div>
+                <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">${escapeHTML(s.category)}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-weight:700; color:var(--primary); font-size:15px;">${s.amount.toLocaleString()}đ</span>
+                <button onclick="deleteSpending(${s.id})" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; padding:6px; border-radius:6px; line-height:0;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
             </div>
         </li>
     `).join('');
@@ -887,18 +947,20 @@ function updateBudgetUI() {
     const info = document.getElementById('budget-info');
     const progress = document.getElementById('budget-progress');
 
+    if (!info || !progress) return;
+
     info.innerText = `${totalSpent.toLocaleString()} / ${Number(budget).toLocaleString()} đ`;
     const percentage = Math.min((totalSpent / budget) * 100, 100);
     progress.style.width = percentage + '%';
 
     if (totalSpent > budget) {
-        progress.style.backgroundColor = '#f44336';
-        info.style.color = '#f44336';
-        info.style.fontWeight = 'bold';
+        progress.style.backgroundColor = 'var(--danger)';
+        info.style.color = 'var(--danger)';
+        info.style.fontWeight = '700';
     } else {
-        progress.style.backgroundColor = percentage > 90 ? '#ff9800' : '#3f51b5';
-        info.style.color = '';
-        info.style.fontWeight = 'normal';
+        progress.style.backgroundColor = percentage > 90 ? 'var(--warning)' : 'var(--primary)';
+        info.style.color = 'var(--text-muted)';
+        info.style.fontWeight = '500';
     }
 }
 
@@ -909,7 +971,8 @@ function drawSpendingChart() {
     const legend = document.getElementById('chart-legend');
 
     const cats = ['Ăn uống', 'Di chuyển', 'Lưu trú', 'Khác'];
-    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'];
+    // Modern palette
+    const colors = ['#6366f1', '#10b981', '#f59e0b', '#ec4899'];
     const data = cats.map(cat => spendings.filter(s => s.category === cat).reduce((sum, s) => sum + s.amount, 0));
     const total = data.reduce((a, b) => a + b, 0);
 
@@ -917,14 +980,17 @@ function drawSpendingChart() {
     legend.innerHTML = '';
 
     if (total === 0) {
-        ctx.fillStyle = '#ccc';
+        ctx.fillStyle = 'var(--border)';
         ctx.beginPath();
         ctx.arc(100, 100, 80, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = 'var(--text-muted)';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data', 100, 105);
         return;
     }
 
-    let startAngle = 0;
+    let startAngle = -0.5 * Math.PI; // Start from top
     data.forEach((val, i) => {
         if (val === 0) return;
         const sliceAngle = (val / total) * 2 * Math.PI;
@@ -939,7 +1005,11 @@ function drawSpendingChart() {
         startAngle += sliceAngle;
 
         const p = (val / total * 100).toFixed(1);
-        legend.innerHTML += `<div><span style="display:inline-block; width:12px; height:12px; background:${colors[i]}; margin-right:5px;"></span>${cats[i]}: ${p}%</div>`;
+        legend.innerHTML += `<div style="display:flex; align-items:center; gap:8px; padding:4px 0;">
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${colors[i]};"></span>
+            <span style="flex:1;">${cats[i]}</span>
+            <span style="font-weight:700;">${p}%</span>
+        </div>`;
     });
 }
 
@@ -976,7 +1046,9 @@ function renderChecklist() {
         <li class="checklist-item ${item.done ? 'done' : ''}">
             <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleCheckItem(${item.id})">
             <span style="flex:1;">${escapeHTML(item.text)}</span>
-            <button onclick="deleteCheckItem(${item.id})" style="background:none; color:red; padding:5px;">✕</button>
+            <button onclick="deleteCheckItem(${item.id})" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; padding:4px; border-radius:6px; line-height:0;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
         </li>
     `).join('');
 }
@@ -1109,8 +1181,8 @@ async function generateTripReport() {
         }
         diariesHtml += `
             <div style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <strong>${escapeHTML(d.start)} ➔ ${escapeHTML(d.end)}</strong> (${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')})<br>
-                🍴 ${escapeHTML(d.food) || 'N/A'} | 💰 ${Number(d.cost).toLocaleString()}đ | ${'⭐'.repeat(d.rating)}<br>
+                <strong>${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</strong> (${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')})<br>
+                Food: ${escapeHTML(d.food) || 'N/A'} | Cost: ${Number(d.cost).toLocaleString()}đ | Rating: ${d.rating}/5<br>
                 ${photosHtml}
             </div>
         `;
@@ -1222,7 +1294,7 @@ function initMap() {
             const [lat, lng] = d.coords.split(',').map(Number);
             L.circleMarker([lat, lng], {
                 radius: 6,
-                fillColor: '#795548',
+                fillColor: '#795548', // Brown check-in marker as requested
                 color: '#fff',
                 weight: 1,
                 fillOpacity: 0.7
@@ -1236,11 +1308,12 @@ function initMap() {
     if (speedEl) speedEl.innerText = currentKmh;
     const distEl = document.getElementById('total-distance-value');
     if (distEl) distEl.innerText = (totalDistance / 1000).toFixed(2);
+    updatePipStatus();
 
     // Use current location if available
     if (currentLocation) {
         markers.current = L.circleMarker(currentLocation, {
-            radius: 10, fillColor: '#2196F3', color: '#fff', weight: 3, fillOpacity: 1
+            radius: 10, fillColor: '#6366f1', color: '#fff', weight: 3, fillOpacity: 1
         }).addTo(map).bindPopup(`Bạn đang ở đây`);
         if (Object.keys(savedMarkers).length === 0) map.setView(currentLocation, 15);
     }
@@ -1267,6 +1340,18 @@ function addMarkerToMap(lat, lng, type) {
     const labels = { start: 'Điểm Đi', dest: 'Điểm Đến', return: 'Điểm Về' };
     markers[type] = L.marker([lat, lng]).addTo(map)
         .bindPopup(`${labels[type]}<br>Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+}
+
+function updatePipStatus() {
+    const btn = document.getElementById('pip-btn');
+    if (!btn) return;
+    if (document.pictureInPictureElement) {
+        btn.classList.add('active-pip');
+        btn.querySelector('span').innerText = currentLang === 'vi' ? 'Đang bật cửa sổ nổi' : 'Floating window active';
+    } else {
+        btn.classList.remove('active-pip');
+        btn.querySelector('span').innerText = translations[currentLang].pip_btn;
+    }
 }
 
 async function togglePiP() {
@@ -1301,6 +1386,7 @@ async function togglePiP() {
             });
 
             await video.requestPictureInPicture();
+            updatePipStatus();
             startPipRendering();
         }
     } catch (err) {
@@ -1319,7 +1405,7 @@ function updatePipCanvas() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Speedometer
-    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = '#10b981'; // Success Green
     ctx.font = 'bold 80px monospace';
     ctx.textAlign = 'center';
     ctx.fillText(currentKmh, 150, 120);
@@ -1327,7 +1413,7 @@ function updatePipCanvas() {
     ctx.fillText('km/h', 150, 150);
 
     // Simplified Map info
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#ffffff';
     ctx.font = '14px sans-serif';
     if (currentLocation) {
         ctx.fillText(`KM: ${(totalDistance/1000).toFixed(2)} | GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
@@ -1336,7 +1422,7 @@ function updatePipCanvas() {
     // Draw a small circle for current position relative to Start/Dest
     const trip = getCurrentTrip();
     if (trip && trip.markers && trip.markers.start && trip.markers.dest) {
-         ctx.strokeStyle = '#3f51b5';
+         ctx.strokeStyle = '#6366f1'; // Primary
          ctx.lineWidth = 2;
          ctx.beginPath();
          ctx.moveTo(50, 240);
@@ -1344,15 +1430,15 @@ function updatePipCanvas() {
          ctx.stroke();
 
          // Start marker
-         ctx.fillStyle = '#28a745';
+         ctx.fillStyle = '#10b981'; // Success
          ctx.beginPath(); ctx.arc(50, 240, 5, 0, Math.PI*2); ctx.fill();
 
          // Dest marker
-         ctx.fillStyle = '#007bff';
+         ctx.fillStyle = '#3b82f6'; // Blue
          ctx.beginPath(); ctx.arc(250, 240, 5, 0, Math.PI*2); ctx.fill();
 
          // Current Position estimate (linear approximation)
-         ctx.fillStyle = '#f00';
+         ctx.fillStyle = '#ef4444'; // Danger
          // Rough percentage calculation
          ctx.beginPath(); ctx.arc(150, 240, 7, 0, Math.PI*2); ctx.fill();
     }
@@ -1360,6 +1446,18 @@ function updatePipCanvas() {
 
 function startPipRendering() {
     if (pipInterval) clearInterval(pipInterval);
+
+    // Also listen for manual exit (via system UI)
+    const video = document.getElementById('pip-video');
+    video.onleavepictureinpicture = () => {
+        updatePipStatus();
+        if (timerWorker) {
+            timerWorker.postMessage('stop');
+            timerWorker.terminate();
+            timerWorker = null;
+        }
+    };
+
     if (timerWorker) timerWorker.terminate();
 
     // Use Web Worker for background-resilient timing
@@ -1410,12 +1508,12 @@ function updateMapLines() {
         polylines.toDest = L.polyline([
             [savedMarkers.start.lat, savedMarkers.start.lng],
             [savedMarkers.dest.lat, savedMarkers.dest.lng]
-        ], { color: '#007bff', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
+        ], { color: '#6366f1', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
     }
     if (savedMarkers.dest && savedMarkers.return) {
         polylines.toReturn = L.polyline([
             [savedMarkers.dest.lat, savedMarkers.dest.lng],
             [savedMarkers.return.lat, savedMarkers.return.lng]
-        ], { color: '#dc3545', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
+        ], { color: '#ef4444', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
     }
 }
