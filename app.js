@@ -3,6 +3,9 @@ let map, markers = {}, polylines = {};
 let watchId = null;
 let currentKmh = 0;
 let currentLocation = null;
+let totalDistance = 0; // In meters
+let lastLocation = null;
+let lastKmNotified = 0;
 let selectedPhotos = [];
 let pipInterval = null;
 let timerWorker = null;
@@ -64,6 +67,8 @@ const translations = {
         keep_alive_note: "* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
+        distance_notif: "Bạn đã di chuyển được {n} km.",
+        total_distance: "Quãng đường: ",
         prep_2days_title: "Chuẩn bị hành lý!",
         prep_2days_body: "Còn 2 ngày nữa là đến chuyến đi {name}. Hãy kiểm tra lại danh sách chuẩn bị nhé!",
         prep_evening_title: "Chuyến đi sắp bắt đầu!",
@@ -130,6 +135,8 @@ const translations = {
         keep_alive_note: "* Enable both for best PiP/GPS updates in background.",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
+        distance_notif: "You have traveled {n} km.",
+        total_distance: "Distance: ",
         prep_2days_title: "Prepare your luggage!",
         prep_2days_body: "2 days left until {name}. Check your checklist!",
         prep_evening_title: "Trip starting soon!",
@@ -348,17 +355,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (wakeLockEnabled) toggleWakeLock(true);
 });
 
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // metres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c; // in metres
+}
+
 function startGlobalGpsWatch() {
     if (watchId) navigator.geolocation.clearWatch(watchId);
     if (navigator.geolocation) {
         watchId = navigator.geolocation.watchPosition(pos => {
-            const { latitude, longitude, speed } = pos.coords;
-            currentKmh = speed ? Math.round(speed * 3.6) : 0;
-            currentLocation = [latitude, longitude];
+            const { latitude, longitude, speed, accuracy } = pos.coords;
 
-            // Update Speedometer UI
+            // Accuracy check to avoid distance jumping when static
+            if (accuracy > 30) return;
+
+            currentKmh = speed ? Math.round(speed * 3.6) : 0;
+            const newLocation = [latitude, longitude];
+
+            // Update distance
+            if (lastLocation) {
+                const dist = calculateDistance(lastLocation[0], lastLocation[1], latitude, longitude);
+                // Filter out small GPS jitters if speed is nearly zero
+                if (dist > 2 && (speed > 0.5 || dist > 10)) {
+                    totalDistance += dist;
+                }
+            }
+            lastLocation = newLocation;
+            currentLocation = newLocation;
+
+            // Check for KM notifications
+            const currentKm = Math.floor(totalDistance / 1000);
+            if (currentKm > lastKmNotified && currentKm > 0) {
+                sendDistanceNotification(currentKm);
+                lastKmNotified = currentKm;
+            }
+
+            // Update UI
             const speedEl = document.getElementById('speed-value');
             if (speedEl) speedEl.innerText = currentKmh;
+
+            const distEl = document.getElementById('total-distance-value');
+            if (distEl) distEl.innerText = (totalDistance / 1000).toFixed(2);
 
             // Trigger PiP update immediately on location change
             if (document.pictureInPictureElement) {
@@ -385,6 +432,15 @@ function startGlobalGpsWatch() {
                 }
             }
         }, null, { enableHighAccuracy: true });
+    }
+}
+
+function sendDistanceNotification(km) {
+    if (motionNotifyEnabled && Notification.permission === "granted") {
+        sendNotification(
+            translations[currentLang].nav_diary,
+            translations[currentLang].distance_notif.replace('{n}', km)
+        );
     }
 }
 
@@ -1137,6 +1193,8 @@ function initMap() {
     // Speedometer initial value
     const speedEl = document.getElementById('speed-value');
     if (speedEl) speedEl.innerText = currentKmh;
+    const distEl = document.getElementById('total-distance-value');
+    if (distEl) distEl.innerText = (totalDistance / 1000).toFixed(2);
 
     // Use current location if available
     if (currentLocation) {
@@ -1231,7 +1289,7 @@ function updatePipCanvas() {
     ctx.fillStyle = '#fff';
     ctx.font = '14px sans-serif';
     if (currentLocation) {
-        ctx.fillText(`GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
+        ctx.fillText(`KM: ${(totalDistance/1000).toFixed(2)} | GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
     }
 
     // Draw a small circle for current position relative to Start/Dest

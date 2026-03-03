@@ -229,9 +229,16 @@
     <template id="map-template">
         <section id="map-section">
             <h2 id="current-trip-title-map" data-i18n="map_title">Bản Đồ Hành Trình</h2>
-            <div id="speedometer-container" style="text-align: center; margin-bottom: 15px; background: #000; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace;">
-                <div style="font-size: 12px; text-transform: uppercase;" data-i18n="current_speed">Tốc độ hiện tại</div>
-                <div style="font-size: 48px; font-weight: bold;"><span id="speed-value">0</span> <small style="font-size: 16px;">km/h</small></div>
+            <div id="speedometer-container" style="text-align: center; margin-bottom: 15px; background: #000; color: #0f0; padding: 10px; border-radius: 8px; font-family: monospace; display: flex; justify-content: space-around; align-items: center;">
+                <div>
+                    <div style="font-size: 10px; text-transform: uppercase;" data-i18n="current_speed">Tốc độ</div>
+                    <div style="font-size: 32px; font-weight: bold;"><span id="speed-value">0</span> <small style="font-size: 12px;">km/h</small></div>
+                </div>
+                <div style="width: 1px; height: 40px; background: #333;"></div>
+                <div>
+                    <div style="font-size: 10px; text-transform: uppercase;" data-i18n="total_distance">Quãng đường</div>
+                    <div style="font-size: 32px; font-weight: bold;"><span id="total-distance-value">0.00</span> <small style="font-size: 12px;">km</small></div>
+                </div>
             </div>
             <div id="map"></div>
             <div class="map-controls">
