@@ -180,6 +180,7 @@ button:active {
 
 .bottom-nav button {
     flex: 1;
+    min-width: 0;
     background: none;
     color: var(--text-muted);
     border: none;

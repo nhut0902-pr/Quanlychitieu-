@@ -13,6 +13,7 @@ let timerWorker = null;
 const translations = {
     vi: {
         nav_diary: "Nhật Ký",
+        nav_itinerary: "Lịch Trình",
         nav_spending: "Chi Tiêu",
         nav_map: "Bản Đồ",
         nav_trips: "Chuyến Đi",
@@ -82,6 +83,12 @@ const translations = {
         spend_count: "khoản chi",
         delete_btn: "Xóa",
         add_photo: "Thêm Ảnh",
+        itinerary_title: "Lịch Trình Chuyến Đi",
+        add_itinerary: "Thêm Lịch Trình",
+        activity_placeholder: "Hoạt động (vd: Tham quan Dinh Bảo Đại)",
+        location_placeholder: "Địa điểm",
+        time_placeholder: "Thời gian",
+        no_itinerary: "Chưa có lịch trình nào.",
         pdf_config_title: "Tùy Chỉnh Báo Cáo PDF",
         pdf_template_label: "Chọn mẫu thiết kế:",
         pdf_font_label: "Font chữ:",
@@ -94,6 +101,7 @@ const translations = {
     },
     en: {
         nav_diary: "Diary",
+        nav_itinerary: "Itinerary",
         nav_spending: "Spending",
         nav_map: "Map",
         nav_trips: "Trips",
@@ -163,6 +171,12 @@ const translations = {
         spend_count: "expenses",
         delete_btn: "Delete",
         add_photo: "Add Photo",
+        itinerary_title: "Trip Itinerary",
+        add_itinerary: "Add Itinerary",
+        activity_placeholder: "Activity (e.g. Visit Eiffel Tower)",
+        location_placeholder: "Location",
+        time_placeholder: "Time",
+        no_itinerary: "No itinerary items yet.",
         pdf_config_title: "Customize PDF Report",
         pdf_template_label: "Select template:",
         pdf_font_label: "Font family:",
@@ -263,6 +277,7 @@ function getCurrentTrip() {
 
 // Data Variables (Load based on current trip)
 let diaries = [];
+let itineraries = [];
 let spendings = [];
 let budget = 1000000;
 let savedMarkers = {};
@@ -299,6 +314,8 @@ function updateLanguage() {
         'food-place': 'food_placeholder',
         'trip-cost': 'cost_placeholder',
         'diary-search': 'search_placeholder',
+        'itinerary-activity': 'activity_placeholder',
+        'itinerary-location': 'location_placeholder',
         'spend-item': 'item_placeholder',
         'spend-amount': 'price_placeholder',
         'checklist-item': 'checklist_placeholder',
@@ -327,6 +344,7 @@ function loadTripData() {
     const trip = getCurrentTrip();
     if (trip) {
         diaries = trip.diaries || [];
+        itineraries = trip.itineraries || [];
         spendings = trip.spendings || [];
         budget = trip.budget || 1000000;
         savedMarkers = trip.markers || {};
@@ -336,7 +354,7 @@ function loadTripData() {
         checklist = trip.checklist || [];
         emergencyInfo = trip.emergencyInfo || '';
     } else {
-        diaries = []; spendings = []; budget = 1000000; savedMarkers = {}; milestones = []; totalDistance = 0; lastKmNotified = 0; checklist = []; emergencyInfo = '';
+        diaries = []; itineraries = []; spendings = []; budget = 1000000; savedMarkers = {}; milestones = []; totalDistance = 0; lastKmNotified = 0; checklist = []; emergencyInfo = '';
     }
 }
 
@@ -345,6 +363,7 @@ function syncTripData() {
     const index = trips.findIndex(t => t.id == currentTripId);
     if (index !== -1) {
         trips[index].diaries = diaries;
+        trips[index].itineraries = itineraries;
         trips[index].spendings = spendings;
         trips[index].budget = budget;
         trips[index].markers = savedMarkers;
@@ -604,13 +623,14 @@ function showSection(section) {
 
     // Update Trip Titles
     const trip = getCurrentTrip();
-    const titleElements = ['diary', 'spending', 'settings', 'map'];
+    const titleElements = ['diary', 'itinerary', 'spending', 'settings', 'map'];
     titleElements.forEach(elId => {
         const el = document.getElementById(`current-trip-title-${elId}`);
         if (el && trip) el.innerText = trip.name;
     });
 
     if (section === 'diary') initDiary();
+    if (section === 'itinerary') initItinerary();
     if (section === 'spending') initSpending();
     if (section === 'trips') initTrips();
     if (section === 'settings') initSettings();
@@ -637,6 +657,7 @@ function initTrips() {
             name: name,
             startDate: startDate,
             diaries: [],
+            itineraries: [],
             spendings: [],
             budget: 1000000,
             markers: {},
@@ -663,8 +684,9 @@ function renderTrips() {
                 <div onclick="switchTrip(${t.id})" style="flex:1;">
                     <div style="font-weight:700; font-size:16px; margin-bottom:4px;">${escapeHTML(t.name)}</div>
                     <div style="display:flex; gap:12px; color:var(--text-muted); font-size:12px;">
-                        <span style="display:flex; align-items:center; gap:4px;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,4H3A2,2 0 0,0 1,6V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V6A2,2 0 0,0 21,4M21,19H3V6H21V19M19,9H5V7H19V9M19,13H5V11H19V13M19,17H5V15H19V17Z"/></svg> ${t.diaries.length} ${diaryText}</span>
-                        <span style="display:flex; align-items:center; gap:4px;"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/></svg> ${t.spendings.length} ${spendText}</span>
+                        <span style="display:flex; align-items:center; gap:4px;" title="Diaries"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,4H3A2,2 0 0,0 1,6V19A2,2 0 0,0 3,21H21A2,2 0 0,0 23,19V6A2,2 0 0,0 21,4M21,19H3V6H21V19M19,9H5V7H19V9M19,13H5V11H19V13M19,17H5V15H19V17Z"/></svg> ${t.diaries.length}</span>
+                        <span style="display:flex; align-items:center; gap:4px;" title="Itinerary"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M19,19H5V9H19V19M19,7H5V5H19V7M7,11H12V13H7V11M7,15H17V17H7V15Z"/></svg> ${t.itineraries ? t.itineraries.length : 0}</span>
+                        <span style="display:flex; align-items:center; gap:4px;" title="Expenses"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21,18V19A2,2 0 0,1 19,21H5C3.89,21 3,20.1 3,19V5A2,2 0 0,1 5,3H19A2,2 0 0,1 21,5V6H12C10.89,6 10,6.9 10,8V16A2,2 0 0,0 12,18H21M12,16H22V8H12V16M16,13.5A1.5,1.5 0 0,1 14.5,12A1.5,1.5 0 0,1 16,10.5A1.5,1.5 0 0,1 17.5,12A1.5,1.5 0 0,1 16,13.5Z"/></svg> ${t.spendings.length}</span>
                     </div>
                     <div style="margin-top:4px; font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
                         <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -892,6 +914,69 @@ async function deleteDiary(id) {
         await deletePhotos(id);
         syncTripData();
         renderDiaries();
+    }
+}
+
+// --- Itinerary Logic ---
+function initItinerary() {
+    renderItinerary();
+    const form = document.getElementById('itinerary-form');
+    if (form) {
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const item = {
+                id: Date.now(),
+                activity: document.getElementById('itinerary-activity').value,
+                location: document.getElementById('itinerary-location').value,
+                time: document.getElementById('itinerary-time').value
+            };
+            itineraries.push(item);
+            syncTripData();
+            renderItinerary();
+            e.target.reset();
+        };
+    }
+}
+
+function renderItinerary() {
+    const list = document.getElementById('itinerary-list');
+    if (!list) return;
+    if (itineraries.length === 0) {
+        list.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding: 40px 0;">${translations[currentLang].no_itinerary}</p>`;
+        return;
+    }
+
+    // Sort itinerary by time
+    const sorted = itineraries.slice().sort((a, b) => (a.time || '23:59').localeCompare(b.time || '23:59'));
+
+    list.innerHTML = sorted.map(item => `
+        <div class="diary-item" style="margin-bottom:12px; padding:12px 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        ${item.time ? `<span style="font-weight:700; color:var(--primary); font-size:14px; background:rgba(var(--primary-rgb),0.1); padding:2px 6px; border-radius:4px;">${item.time}</span>` : ''}
+                        <strong style="margin:0; font-size:15px; color:var(--text-main);">${escapeHTML(item.activity)}</strong>
+                    </div>
+                    ${item.location ? `
+                        <div style="display:flex; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            <span>${escapeHTML(item.location)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+                <button onclick="deleteItinerary(${item.id})" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:none; padding:6px; border-radius:6px; line-height:0;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function deleteItinerary(id) {
+    if (confirm(translations[currentLang].delete_confirm)) {
+        itineraries = itineraries.filter(i => i.id !== id);
+        syncTripData();
+        renderItinerary();
     }
 }
 
