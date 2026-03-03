@@ -418,6 +418,63 @@ input:checked + .slider:before {
     padding: 30px;
     border-radius: 20px;
     box-shadow: var(--shadow-lg);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.pdf-modal-wide {
+    max-width: 900px;
+}
+
+.pdf-config-container {
+    display: flex;
+    gap: 30px;
+}
+
+.pdf-config-sidebar {
+    flex: 1;
+}
+
+.pdf-preview-main {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 768px) {
+    .pdf-config-container {
+        flex-direction: column;
+    }
+}
+
+#pdf-preview-container {
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: #e2e8f0;
+    position: relative;
+    min-height: 350px;
+    overflow: hidden;
+}
+
+#pdf-preview-iframe {
+    width: 200%;
+    height: 200%;
+    border: none;
+    transform: scale(0.5);
+    transform-origin: top left;
+    display: none;
+}
+
+.preview-placeholder {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
 }
 
 .config-group {

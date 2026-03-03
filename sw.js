@@ -1,4 +1,4 @@
-const CACHE_NAME = 'travel-diary-v15';
+const CACHE_NAME = 'travel-diary-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -8,9 +8,11 @@ const ASSETS = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://img.icons8.com/color/192/000000/map-marker.png',
+  'https://img.icons8.com/color/512/000000/map-marker.png',
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+  'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&family=Roboto:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&family=Oswald:wght@400;700&family=Quicksand:wght@400;700&family=Caveat:wght@400;700&family=Abril+Fatface&family=Raleway:wght@400;700&family=Comfortaa:wght@400;700&family=Cinzel:wght@400;700&family=Exo+2:wght@400;700&display=swap'
 ];
 
 self.addEventListener('install', event => {

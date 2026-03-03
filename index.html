@@ -54,46 +54,64 @@
 
     <!-- PDF Customization Modal -->
     <div id="pdf-modal" class="modal" style="display:none;">
-        <div class="modal-content">
+        <div class="modal-content pdf-modal-wide">
             <h3 data-i18n="pdf_config_title">Tùy Chỉnh Báo Cáo PDF</h3>
 
-            <div class="config-group">
-                <label data-i18n="pdf_template_label">Chọn mẫu thiết kế:</label>
-                <div class="template-grid" id="template-select">
-                    <!-- Templates will be injected here -->
+            <div class="pdf-config-container">
+                <div class="pdf-config-sidebar">
+                    <div class="config-group">
+                        <label data-i18n="pdf_template_label">Chọn mẫu thiết kế:</label>
+                        <div class="template-grid" id="template-select">
+                            <!-- Templates will be injected here -->
+                        </div>
+                    </div>
+
+                    <div class="config-group">
+                        <label data-i18n="pdf_font_label">Font chữ:</label>
+                        <select id="pdf-font-select" onchange="updatePdfPreview()">
+                            <option value="'Inter', sans-serif">Modern Sans (Inter)</option>
+                            <option value="'Playfair Display', serif">Elegant Serif (Playfair)</option>
+                            <option value="'JetBrains Mono', monospace">Technical Mono</option>
+                            <option value="'Dancing Script', cursive">Handwritten</option>
+                            <option value="'Montserrat', sans-serif">Geometric Sans</option>
+                            <option value="'Roboto', sans-serif">Roboto</option>
+                            <option value="'Lora', serif">Lora Serif</option>
+                            <option value="'Pacifico', cursive">Pacifico Script</option>
+                            <option value="'Oswald', sans-serif">Oswald Bold</option>
+                            <option value="'Quicksand', sans-serif">Quicksand Soft</option>
+                            <option value="'Caveat', cursive">Caveat Handwriting</option>
+                            <option value="'Abril Fatface', serif">Abril Display</option>
+                            <option value="'Raleway', sans-serif">Raleway Elegant</option>
+                            <option value="'Comfortaa', cursive">Comfortaa Round</option>
+                            <option value="'Cinzel', serif">Cinzel Decorative</option>
+                            <option value="'Exo 2', sans-serif">Exo 2 Tech</option>
+                        </select>
+                    </div>
+
+                    <div class="config-group">
+                        <label data-i18n="pdf_color_label">Màu nhấn chủ đạo:</label>
+                        <input type="color" id="pdf-accent-color" value="#6366f1" onchange="updatePdfPreview()" style="width:100%; height:40px; padding:0; background:none; border:1.5px solid var(--border); border-radius:8px; cursor:pointer;">
+                    </div>
                 </div>
-            </div>
 
-            <div class="config-group">
-                <label data-i18n="pdf_font_label">Font chữ:</label>
-                <select id="pdf-font-select">
-                    <option value="'Inter', sans-serif">Modern Sans (Inter)</option>
-                    <option value="'Playfair Display', serif">Elegant Serif (Playfair)</option>
-                    <option value="'JetBrains Mono', monospace">Technical Mono</option>
-                    <option value="'Dancing Script', cursive">Handwritten</option>
-                    <option value="'Montserrat', sans-serif">Geometric Sans</option>
-                    <option value="'Roboto', sans-serif">Roboto</option>
-                    <option value="'Lora', serif">Lora Serif</option>
-                    <option value="'Pacifico', cursive">Pacifico Script</option>
-                    <option value="'Oswald', sans-serif">Oswald Bold</option>
-                    <option value="'Quicksand', sans-serif">Quicksand Soft</option>
-                    <option value="'Caveat', cursive">Caveat Handwriting</option>
-                    <option value="'Abril Fatface', serif">Abril Display</option>
-                    <option value="'Raleway', sans-serif">Raleway Elegant</option>
-                    <option value="'Comfortaa', cursive">Comfortaa Round</option>
-                    <option value="'Cinzel', serif">Cinzel Decorative</option>
-                    <option value="'Exo 2', sans-serif">Exo 2 Tech</option>
-                </select>
-            </div>
-
-            <div class="config-group">
-                <label data-i18n="pdf_color_label">Màu nhấn chủ đạo:</label>
-                <input type="color" id="pdf-accent-color" value="#6366f1">
+                <div class="pdf-preview-main">
+                    <label data-i18n="pdf_preview_label">Xem trước:</label>
+                    <div id="pdf-preview-container">
+                        <div id="pdf-preview-empty" class="preview-placeholder">
+                            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.3; margin-bottom:12px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                            <p style="font-size:13px; color:var(--text-muted);" data-i18n="pdf_preview_empty">Chọn mẫu để xem trước</p>
+                        </div>
+                        <iframe id="pdf-preview-iframe" title="PDF Preview"></iframe>
+                    </div>
+                </div>
             </div>
 
             <div class="modal-actions">
                 <button onclick="closePdfModal()" style="background:var(--secondary);" data-i18n="cancel_btn">Hủy</button>
-                <button onclick="generateCustomPdf()" data-i18n="export_btn">Tạo PDF</button>
+                <button id="download-pdf-btn" onclick="generateCustomPdf()" style="opacity:0.5; pointer-events:none;">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <span data-i18n="export_btn">Tải xuống PDF</span>
+                </button>
             </div>
         </div>
     </div>
@@ -217,7 +235,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:500;" data-i18n="theme_color">Màu chủ đạo:</span>
-                        <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:60px; height:35px; padding:2px; border:1px solid var(--border); border-radius:6px; cursor:pointer;">
+                        <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:48px; height:32px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:none;">
                     </div>
                 </div>
             </div>

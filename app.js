@@ -81,12 +81,16 @@ const translations = {
         trip_count: "mục nhật ký",
         spend_count: "khoản chi",
         delete_btn: "Xóa",
+        add_photo: "Thêm Ảnh",
         pdf_config_title: "Tùy Chỉnh Báo Cáo PDF",
         pdf_template_label: "Chọn mẫu thiết kế:",
         pdf_font_label: "Font chữ:",
         pdf_color_label: "Màu nhấn chủ đạo:",
+        pdf_preview_label: "Xem trước:",
+        pdf_preview_empty: "Chọn mẫu để xem trước",
         cancel_btn: "Hủy",
-        export_btn: "Tạo PDF"
+        export_btn: "Tải xuống PDF",
+        emergency_placeholder: "Liên hệ người thân, nhóm máu, dị ứng..."
     },
     en: {
         nav_diary: "Diary",
@@ -158,12 +162,16 @@ const translations = {
         trip_count: "diaries",
         spend_count: "expenses",
         delete_btn: "Delete",
+        add_photo: "Add Photo",
         pdf_config_title: "Customize PDF Report",
         pdf_template_label: "Select template:",
         pdf_font_label: "Font family:",
         pdf_color_label: "Accent Color:",
+        pdf_preview_label: "Preview:",
+        pdf_preview_empty: "Select a template to preview",
         cancel_btn: "Cancel",
-        export_btn: "Create PDF"
+        export_btn: "Download PDF",
+        emergency_placeholder: "Emergency contact, blood type, allergies..."
     }
 };
 
@@ -293,7 +301,8 @@ function updateLanguage() {
         'diary-search': 'search_placeholder',
         'spend-item': 'item_placeholder',
         'spend-amount': 'price_placeholder',
-        'checklist-item': 'checklist_placeholder'
+        'checklist-item': 'checklist_placeholder',
+        'emergency-info': 'emergency_placeholder'
     };
 
     for (let id in placeholders) {
@@ -1213,18 +1222,30 @@ function generateTripReport() {
     `).join('');
 
     document.getElementById('pdf-accent-color').value = primaryColor;
+    updatePdfPreview();
 }
 
 function selectPdfTemplate(id) {
     selectedTemplate = id;
-    generateTripReport(); // Re-render to show selection
+
+    // Re-render template items to show selection
+    const items = document.querySelectorAll('.template-item');
+    items.forEach(item => {
+        if (item.innerText.trim() === (currentLang === 'vi' ? pdfTemplates.find(t => t.id === id).name : pdfTemplates.find(t => t.id === id).nameEn)) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+
+    updatePdfPreview();
 }
 
 function closePdfModal() {
     document.getElementById('pdf-modal').style.display = 'none';
 }
 
-async function generateCustomPdf() {
+async function updatePdfPreview() {
     const trip = getCurrentTrip();
     if (!trip) return;
 
@@ -1232,55 +1253,42 @@ async function generateCustomPdf() {
     const accent = document.getElementById('pdf-accent-color').value;
     const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
 
-    // Prepare data
-    let diariesHtml = '';
-    for(const d of diaries) {
-        let photosHtml = '';
-        if (d.hasPhotos) {
-            const photos = await getPhotos(d.id);
-            photosHtml = `<div class="diary-photos">
-                ${photos.map(p => `<img src="${p}">`).join('')}
-            </div>`;
-        }
+    // Show loading state or hide empty placeholder
+    document.getElementById('pdf-preview-empty').style.display = 'none';
+    const previewIframe = document.getElementById('pdf-preview-iframe');
+    previewIframe.style.display = 'block';
 
+    // Enable download button
+    const downloadBtn = document.getElementById('download-pdf-btn');
+    downloadBtn.style.opacity = '1';
+    downloadBtn.style.pointerEvents = 'auto';
+
+    // Prepare data (simplified for preview performance)
+    let diariesHtml = '';
+    for(const d of diaries.slice(-5)) { // Only show last 5 for preview speed
         diariesHtml += `
             <div class="diary-card">
                 <div class="card-header">
                     <span class="route">${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</span>
-                    <span class="time">${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
                 </div>
                 <div class="card-body">
-                    <div class="info-row">
-                        <span class="label">🍴 Món ăn:</span> <span>${escapeHTML(d.food) || '---'}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">💰 Chi phí:</span> <span>${Number(d.cost).toLocaleString()}đ</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="label">📍 Tọa độ:</span> <span class="mono">${d.coords || '---'}</span>
-                    </div>
+                    <div class="info-row"><span class="label">📍 Coords:</span> <span class="mono">${d.coords || '---'}</span></div>
                     <div class="rating">${'★'.repeat(d.rating)}${'☆'.repeat(5-d.rating)}</div>
-                    ${photosHtml}
                 </div>
             </div>
         `;
     }
 
-    // Create a hidden iframe for more reliable PDF generation
-    let iframe = document.getElementById('pdf-export-iframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'pdf-export-iframe';
-        iframe.style.position = 'fixed';
-        iframe.style.top = '-10000px';
-        iframe.style.left = '-10000px';
-        document.body.appendChild(iframe);
-    }
+    const htmlContent = generatePdfHtml(trip, font, accent, totalSpent, diariesHtml, true);
 
-    const reportDoc = iframe.contentWindow.document;
-    reportDoc.open();
+    const previewDoc = previewIframe.contentWindow.document;
+    previewDoc.open();
+    previewDoc.write(htmlContent);
+    previewDoc.close();
+}
 
-    // Complex CSS generation based on template
+function generatePdfHtml(trip, font, accent, totalSpent, diariesHtml, isPreview = false) {
+    // Template specific CSS (moved from generateCustomPdf)
     let templateStyles = '';
     if (selectedTemplate === 'modern') {
         templateStyles = `
@@ -1319,13 +1327,13 @@ async function generateCustomPdf() {
             .container { max-width: 900px; margin: auto; background: white; display: grid; grid-template-columns: 1fr; }
             .report-header { padding: 80px 40px; background: #000; color: #fff; text-align: left; }
             .report-header h1 { font-size: 4em; margin: 0; line-height: 1; }
-            .diary-card { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 40px; border-bottom: 1px solid #000; }
+            .diary-card { display: grid; grid-template-columns: ${isPreview ? '1fr' : '1fr 1fr'}; gap: 30px; padding: 40px; border-bottom: 1px solid #000; }
         `;
     } else if (selectedTemplate === 'scrapbook') {
         templateStyles = `
             body { background: #d7ccc8; }
             .container { max-width: 800px; margin: 20px auto; padding: 40px; background: #fff; box-shadow: 5px 5px 15px rgba(0,0,0,0.2); position: relative; }
-            .diary-card { transform: rotate(${Math.random() * 4 - 2}deg); background: #fff; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 40px; border: 1px solid #ddd; }
+            .diary-card { transform: rotate(${isPreview ? 0 : (Math.random() * 4 - 2)}deg); background: #fff; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 40px; border: 1px solid #ddd; }
             .diary-card::before { content: ""; position: absolute; top: -10px; left: 50%; width: 100px; height: 30px; background: rgba(255,255,255,0.5); transform: translateX(-50%); }
         `;
     } else if (selectedTemplate === 'business') {
@@ -1373,35 +1381,35 @@ async function generateCustomPdf() {
         `;
     } else if (selectedTemplate === 'timeline') {
         templateStyles = `
-            .container { position: relative; padding-left: 50px; border-left: 4px solid ${accent}; margin-left: 100px; }
+            .container { position: relative; padding-left: 50px; border-left: 4px solid ${accent}; margin-left: ${isPreview ? '10px' : '100px'}; }
             .diary-card { position: relative; margin-bottom: 60px; }
             .diary-card::before { content: ""; position: absolute; left: -67px; top: 20px; width: 30px; height: 30px; background: ${accent}; border-radius: 50%; border: 5px solid white; }
         `;
     } else if (selectedTemplate === 'map-focus') {
         templateStyles = `
             .container { max-width: 900px; margin: auto; }
-            .diary-card { display: flex; gap: 30px; align-items: center; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
+            .diary-card { display: flex; flex-direction: ${isPreview ? 'column' : 'row'}; gap: 30px; align-items: center; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
             .mono { background: #000; color: #0f0; padding: 2px 5px; border-radius: 3px; }
         `;
     } else if (selectedTemplate === 'classic') {
         templateStyles = `
             body { font-family: "Times New Roman", serif; padding: 50px; }
-            .report-header { border-double: 3px double #000; padding: 20px; text-align: center; }
+            .report-header { border-bottom: 3px double #000; padding: 20px; text-align: center; }
             .diary-card { margin-top: 40px; page-break-inside: avoid; }
         `;
     }
 
-    reportDoc.write(`
+    return `
         <html>
         <head>
             <title>Trip Report: ${escapeHTML(trip.name)}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,700&family=JetBrains+Mono:wght@700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,700&family=JetBrains+Mono:wght@700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&family=Roboto:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&family=Oswald:wght@400;700&family=Quicksand:wght@400;700&family=Caveat:wght@400;700&family=Abril+Fatface&family=Raleway:wght@400;700&family=Comfortaa:wght@400;700&family=Cinzel:wght@400;700&family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; }
-                body { margin: 0; padding: 20px; font-family: ${font}; line-height: 1.6; }
+                body { margin: 0; padding: 20px; font-family: ${font}; line-height: 1.6; font-size: ${isPreview ? '12px' : '16px'}; }
                 .container { position: relative; z-index: 1; }
                 .report-header h1 { margin: 0; font-size: 2.5em; }
-                .summary-box { background: rgba(0,0,0,0.03); padding: 20px; border-radius: 10px; margin-bottom: 40px; display: flex; justify-content: space-around; }
+                .summary-box { background: rgba(0,0,0,0.03); padding: 20px; border-radius: 10px; margin-bottom: 40px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
                 .summary-item { text-align: center; }
                 .summary-item .val { font-size: 1.5em; font-weight: bold; color: ${accent}; display: block; }
                 .summary-item .lab { font-size: 0.8em; color: #666; text-transform: uppercase; }
@@ -1411,12 +1419,13 @@ async function generateCustomPdf() {
                 .label { font-weight: bold; margin-right: 10px; color: #555; }
                 .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
                 .rating { color: #f59e0b; font-size: 1.2em; margin: 10px 0; }
-                .diary-photos { display: flex; gap: 10px; margin-top: 15px; overflow: hidden; }
-                .diary-photos img { max-height: 200px; border-radius: 8px; object-fit: cover; }
+                .diary-photos { display: flex; gap: 10px; margin-top: 15px; overflow: hidden; flex-wrap: wrap; }
+                .diary-photos img { max-height: 150px; border-radius: 8px; object-fit: cover; }
                 .footer { margin-top: 80px; text-align: center; font-size: 0.8em; opacity: 0.5; padding: 40px 0; border-top: 1px solid #eee; }
                 @media print {
-                    body { padding: 0; }
+                    body { padding: 0; font-size: 14px; }
                     .container { box-shadow: none !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+                    .diary-photos img { max-height: 250px; }
                 }
                 ${templateStyles}
             </style>
@@ -1445,22 +1454,73 @@ async function generateCustomPdf() {
                     ${diariesHtml}
                 </div>
                 <div class="footer">
-                    <p>Báo cáo chuyến đi được tạo bởi <strong>Nhật Ký Chuyến Đi PWA</strong></p>
-                    <p>Powered By Nhutcoder</p>
+                    <p>Powered By <strong>Nhutcoder</strong></p>
                 </div>
             </div>
+            ${isPreview ? '' : `
             <script>
                 window.onload = () => {
                     setTimeout(() => {
                         window.print();
-                        // Optional: cleanup or notify user
                     }, 1000);
                 };
             </script>
+            `}
         </body>
         </html>
-    `);
+    `;
+}
 
+async function generateCustomPdf() {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    const font = document.getElementById('pdf-font-select').value;
+    const accent = document.getElementById('pdf-accent-color').value;
+    const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
+
+    // Prepare full data
+    let diariesHtml = '';
+    for(const d of diaries) {
+        let photosHtml = '';
+        if (d.hasPhotos) {
+            const photos = await getPhotos(d.id);
+            photosHtml = `<div class="diary-photos">
+                ${photos.map(p => `<img src="${p}">`).join('')}
+            </div>`;
+        }
+
+        diariesHtml += `
+            <div class="diary-card">
+                <div class="card-header">
+                    <span class="route">${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</span>
+                    <span class="time">${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-row"><span class="label">🍴 Món ăn:</span> <span>${escapeHTML(d.food) || '---'}</span></div>
+                    <div class="info-row"><span class="label">💰 Chi phí:</span> <span>${Number(d.cost).toLocaleString()}đ</span></div>
+                    <div class="info-row"><span class="label">📍 Tọa độ:</span> <span class="mono">${d.coords || '---'}</span></div>
+                    <div class="rating">${'★'.repeat(d.rating)}${'☆'.repeat(5-d.rating)}</div>
+                    ${photosHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    const htmlContent = generatePdfHtml(trip, font, accent, totalSpent, diariesHtml, false);
+
+    // Create a hidden iframe for more reliable PDF generation
+    let iframe = document.getElementById('pdf-export-iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'pdf-export-iframe';
+        iframe.style.position = 'fixed'; iframe.style.top = '-10000px';
+        document.body.appendChild(iframe);
+    }
+
+    const reportDoc = iframe.contentWindow.document;
+    reportDoc.open();
+    reportDoc.write(htmlContent);
     reportDoc.close();
 
     // Trigger print from iframe
