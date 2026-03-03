@@ -97,7 +97,17 @@ const translations = {
         pdf_preview_empty: "Chọn mẫu để xem trước",
         cancel_btn: "Hủy",
         export_btn: "Tải xuống PDF",
-        emergency_placeholder: "Liên hệ người thân, nhóm máu, dị ứng..."
+        emergency_placeholder: "Liên hệ người thân, nhóm máu, dị ứng...",
+        help_btn: "Hướng Dẫn Sử Dụng",
+        terms_btn: "Điều Khoản & Bảo Mật",
+        updates_btn: "Bản Cập Nhật",
+        help_title: "Hướng Dẫn Sử Dụng",
+        terms_title: "Điều Khoản & Quyền Riêng Tư",
+        updates_title: "Thông Tin Bản Cập Nhật 1.2.1",
+        update_notice: "Có bản cập nhật mới (1.2.1)!",
+        manual_content: "• Nhật ký: Ghi lại hành trình, ảnh và đánh giá.<br>• Lịch trình: Lên kế hoạch thời gian cho chuyến đi.<br>• Chi tiêu: Quản lý ngân sách và xem biểu đồ.<br>• Bản đồ: Đánh dấu GPS và theo dõi tốc độ (hỗ trợ PiP).<br>• Xuất PDF: Tạo báo cáo đẹp mắt để lưu niệm.",
+        terms_content: "Dữ liệu của bạn được lưu hoàn toàn trên thiết bị (Offline). Chúng tôi không thu thập bất kỳ thông tin nào. Sử dụng GPS chỉ phục vụ mục đích đánh dấu vị trí và đo tốc độ trong ứng dụng.",
+        updates_content: "<b>Phiên bản 1.2.1</b><br><br>Tính năng mới:<br>• Thêm tính năng Lịch Trình chuyến đi.<br>• Thêm hướng dẫn sử dụng & điều khoản.<br>• Cải thiện giao diện xuất PDF.<br><br>Lỗi đã sửa:<br>• Fix lỗi xem trước PDF bị hiển thị 1 nửa trên mobile.<br>• Tối ưu hiệu suất chạy ngầm."
     },
     en: {
         nav_diary: "Diary",
@@ -185,7 +195,17 @@ const translations = {
         pdf_preview_empty: "Select a template to preview",
         cancel_btn: "Cancel",
         export_btn: "Download PDF",
-        emergency_placeholder: "Emergency contact, blood type, allergies..."
+        emergency_placeholder: "Emergency contact, blood type, allergies...",
+        help_btn: "User Manual",
+        terms_btn: "Terms & Privacy",
+        updates_btn: "What's New",
+        help_title: "User Manual",
+        terms_title: "Terms & Privacy",
+        updates_title: "Update 1.2.1 Info",
+        update_notice: "New update available (1.2.1)!",
+        manual_content: "• Diary: Log journey, photos and ratings.<br>• Itinerary: Plan your trip schedule.<br>• Spending: Manage budget and view charts.<br>• Map: Mark GPS points and track speed (PiP supported).<br>• Export PDF: Create beautiful reports for memories.",
+        terms_content: "Your data is stored entirely on your device (Offline). We do not collect any information. GPS usage is only for marking locations and speed tracking within the app.",
+        updates_content: "<b>Version 1.2.1</b><br><br>New Features:<br>• Added Trip Itinerary feature.<br>• Added manual and terms sections.<br>• Improved PDF export interface.<br><br>Bug Fixes:<br>• Fixed PDF preview clipped issue on mobile.<br>• Optimized background performance."
     }
 };
 
@@ -380,6 +400,15 @@ document.addEventListener('DOMContentLoaded', () => {
     updateThemeIcon();
     applyThemeColor(primaryColor);
     updateLanguage();
+
+    const lastVersion = localStorage.getItem('lastAppVersion');
+    const currentVersion = '1.2.1';
+    if (lastVersion !== currentVersion) {
+        setTimeout(() => {
+            showUpdates();
+            localStorage.setItem('lastAppVersion', currentVersion);
+        }, 1000);
+    }
 
     // Auto-create first trip if none exists
     if (trips.length === 0) {
@@ -1330,6 +1359,28 @@ function closePdfModal() {
     document.getElementById('pdf-modal').style.display = 'none';
 }
 
+function showInfoModal(title, body) {
+    document.getElementById('info-modal-title').innerText = title;
+    document.getElementById('info-modal-body').innerHTML = body;
+    document.getElementById('info-modal').style.display = 'flex';
+}
+
+function closeInfoModal() {
+    document.getElementById('info-modal').style.display = 'none';
+}
+
+function showManual() {
+    showInfoModal(translations[currentLang].help_title, translations[currentLang].manual_content);
+}
+
+function showTerms() {
+    showInfoModal(translations[currentLang].terms_title, translations[currentLang].terms_content);
+}
+
+function showUpdates() {
+    showInfoModal(translations[currentLang].updates_title, translations[currentLang].updates_content);
+}
+
 async function updatePdfPreview() {
     const trip = getCurrentTrip();
     if (!trip) return;
@@ -1352,7 +1403,7 @@ async function updatePdfPreview() {
     let diariesHtml = '';
     for(const d of diaries.slice(-5)) { // Only show last 5 for preview speed
         diariesHtml += `
-            <div class="diary-card">
+            <div class="diary-card" style="page-break-inside: avoid;">
                 <div class="card-header">
                     <span class="route">${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</span>
                 </div>
@@ -1491,8 +1542,8 @@ function generatePdfHtml(trip, font, accent, totalSpent, diariesHtml, isPreview 
             <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,700&family=JetBrains+Mono:wght@700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&family=Roboto:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&family=Pacifico&family=Oswald:wght@400;700&family=Quicksand:wght@400;700&family=Caveat:wght@400;700&family=Abril+Fatface&family=Raleway:wght@400;700&family=Comfortaa:wght@400;700&family=Cinzel:wght@400;700&family=Exo+2:wght@400;700&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; }
-                body { margin: 0; padding: 20px; font-family: ${font}; line-height: 1.6; font-size: ${isPreview ? '12px' : '16px'}; }
-                .container { position: relative; z-index: 1; }
+                body { margin: 0; padding: ${isPreview ? '0' : '20px'}; font-family: ${font}; line-height: 1.6; font-size: ${isPreview ? '10px' : '16px'}; width: ${isPreview ? '100%' : 'auto'}; overflow-x: hidden; }
+                .container { position: relative; z-index: 1; width: 100%; max-width: 800px; margin: auto; }
                 .report-header h1 { margin: 0; font-size: 2.5em; }
                 .summary-box { background: rgba(0,0,0,0.03); padding: 20px; border-radius: 10px; margin-bottom: 40px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; }
                 .summary-item { text-align: center; }
@@ -1918,7 +1969,7 @@ function updateMapLines() {
         polylines.toDest = L.polyline([
             [savedMarkers.start.lat, savedMarkers.start.lng],
             [savedMarkers.dest.lat, savedMarkers.dest.lng]
-        ], { color: '#6366f1', weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
+        ], { color: primaryColor, weight: 4, opacity: 0.6, dashArray: '10, 10' }).addTo(map);
     }
     if (savedMarkers.dest && savedMarkers.return) {
         polylines.toReturn = L.polyline([
