@@ -5,6 +5,7 @@ let currentKmh = 0;
 let currentLocation = null;
 let selectedPhotos = [];
 let pipInterval = null;
+let timerWorker = null;
 
 const translations = {
     vi: {
@@ -58,9 +59,9 @@ const translations = {
         copy_success: "Đã copy tọa độ: ",
         notifications_title: "Thông Báo & Chạy Ngầm",
         notify_motion: "Thông báo khi di chuyển (>10km/h):",
-        keep_alive: "Duy trì khi khóa máy (Âm thanh im lặng):",
-        wake_lock: "Giữ màn hình luôn sáng:",
-        keep_alive_note: "* Để theo dõi tốc độ chính xác, không vuốt để đóng hẳn ứng dụng.",
+        keep_alive: "Duy trì khi chạy ngầm (Âm thanh im lặng):",
+        wake_lock: "Giữ màn hình luôn sáng (Wake Lock):",
+        keep_alive_note: "* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
         prep_2days_title: "Chuẩn bị hành lý!",
@@ -124,9 +125,9 @@ const translations = {
         copy_success: "Coordinates copied: ",
         notifications_title: "Notifications & Background",
         notify_motion: "Notify when moving (>10km/h):",
-        keep_alive: "Keep alive (Silent audio loop):",
-        wake_lock: "Keep screen awake:",
-        keep_alive_note: "* For precise speed tracking, do not swipe to close the app.",
+        keep_alive: "Background Keep-Alive (Silent Audio):",
+        wake_lock: "Keep Screen Awake (Wake Lock):",
+        keep_alive_note: "* Enable both for best PiP/GPS updates in background.",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
         prep_2days_title: "Prepare your luggage!",
@@ -355,9 +356,14 @@ function startGlobalGpsWatch() {
             currentKmh = speed ? Math.round(speed * 3.6) : 0;
             currentLocation = [latitude, longitude];
 
-            // Update Speedometer if visible
+            // Update Speedometer UI
             const speedEl = document.getElementById('speed-value');
             if (speedEl) speedEl.innerText = currentKmh;
+
+            // Trigger PiP update immediately on location change
+            if (document.pictureInPictureElement) {
+                updatePipCanvas();
+            }
 
             // Check for trip start notification (> 10km/h)
             if (currentKmh >= 10 && !hasNotifiedStart) {
@@ -915,11 +921,13 @@ function startSilentAudio() {
         if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
         if (audioContext.state === 'suspended') audioContext.resume();
 
+        // We create a very slight vibration in the "silence" to keep the OS audio engine awake
         const bufferSize = 2 * audioContext.sampleRate;
         const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
         const output = noiseBuffer.getChannelData(0);
         for (let i = 0; i < bufferSize; i++) {
-            output[i] = 0; // Silent
+            // Very tiny amount of noise (nearly inaudible but keeps the stream active)
+            output[i] = (Math.random() * 2 - 1) * 0.0001;
         }
 
         const whiteNoise = audioContext.createBufferSource();
@@ -1177,12 +1185,12 @@ async function togglePiP() {
 
             const canvas = document.getElementById('pip-canvas');
             // Ensure initial draw so the stream isn't empty
-            renderPipFrame(canvas.getContext('2d'), canvas);
+            updatePipCanvas();
 
-            const stream = canvas.captureStream(30);
+            // 5 FPS is enough for speed and saves battery in background
+            const stream = canvas.captureStream(5);
             video.srcObject = stream;
 
-            // Use a promise to wait for metadata and play
             await new Promise((resolve, reject) => {
                 video.onloadedmetadata = async () => {
                     try {
@@ -1202,7 +1210,11 @@ async function togglePiP() {
     }
 }
 
-function renderPipFrame(ctx, canvas) {
+function updatePipCanvas() {
+    const canvas = document.getElementById('pip-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
     // Background
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1242,66 +1254,54 @@ function renderPipFrame(ctx, canvas) {
 
          // Current Position estimate (linear approximation)
          ctx.fillStyle = '#f00';
+         // Rough percentage calculation
          ctx.beginPath(); ctx.arc(150, 240, 7, 0, Math.PI*2); ctx.fill();
     }
 }
 
 function startPipRendering() {
     if (pipInterval) clearInterval(pipInterval);
-    const canvas = document.getElementById('pip-canvas');
-    const ctx = canvas.getContext('2d');
+    if (timerWorker) timerWorker.terminate();
 
+    // Use Web Worker for background-resilient timing
+    const workerCode = `
+        let intervalId = null;
+        self.onmessage = function(e) {
+            if (e.data === 'start') {
+                if (intervalId) clearInterval(intervalId);
+                intervalId = setInterval(() => self.postMessage('tick'), 1000);
+            } else if (e.data === 'stop') {
+                if (intervalId) clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    timerWorker = new Worker(URL.createObjectURL(blob));
+
+    timerWorker.onmessage = () => {
+        if (document.pictureInPictureElement) {
+            updatePipCanvas();
+        } else {
+            if (timerWorker) {
+                timerWorker.postMessage('stop');
+                timerWorker.terminate();
+                timerWorker = null;
+            }
+        }
+    };
+
+    timerWorker.postMessage('start');
+
+    // Fallback interval in case Worker fails
     pipInterval = setInterval(() => {
         if (!document.pictureInPictureElement) {
             clearInterval(pipInterval);
             pipInterval = null;
             return;
         }
-
-        // Background
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Speedometer
-        ctx.fillStyle = '#0f0';
-        ctx.font = 'bold 80px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(currentKmh, 150, 120);
-        ctx.font = '20px monospace';
-        ctx.fillText('km/h', 150, 150);
-
-        // Simplified Map info
-        ctx.fillStyle = '#fff';
-        ctx.font = '14px sans-serif';
-        if (currentLocation) {
-            ctx.fillText(`GPS: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}`, 150, 190);
-        }
-
-        // Draw a small circle for current position relative to Start/Dest
-        const trip = getCurrentTrip();
-        if (trip && trip.markers && trip.markers.start && trip.markers.dest) {
-             ctx.strokeStyle = '#3f51b5';
-             ctx.lineWidth = 2;
-             ctx.beginPath();
-             ctx.moveTo(50, 240);
-             ctx.lineTo(250, 240);
-             ctx.stroke();
-
-             // Start marker
-             ctx.fillStyle = '#28a745';
-             ctx.beginPath(); ctx.arc(50, 240, 5, 0, Math.PI*2); ctx.fill();
-
-             // Dest marker
-             ctx.fillStyle = '#007bff';
-             ctx.beginPath(); ctx.arc(250, 240, 5, 0, Math.PI*2); ctx.fill();
-
-             // Current Position estimate (very rough linear)
-             // This is just a visual indicator for the PiP window
-             ctx.fillStyle = '#f00';
-             ctx.beginPath(); ctx.arc(150, 240, 7, 0, Math.PI*2); ctx.fill();
-        }
-
-    }, 100);
+        updatePipCanvas();
+    }, 2000);
 }
 
 function updateMapLines() {

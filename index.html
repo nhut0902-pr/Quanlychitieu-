@@ -160,7 +160,7 @@
 
             <hr>
 
-            <div class="extra-group">
+            <div class="extra-group" style="border: 2px solid var(--primary-color);">
                 <h3 data-i18n="notifications_title">Thông Báo & Chạy Ngầm</h3>
                 <div style="display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -170,21 +170,21 @@
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="keep_alive">Chạy ngầm (khi khóa màn hình):</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; color: #d32f2f; font-weight: bold;">
+                        <span data-i18n="keep_alive">Duy trì khi chạy ngầm (Âm thanh im lặng):</span>
                         <label class="switch">
                             <input type="checkbox" id="keep-alive-toggle" onchange="toggleKeepAlive(this.checked)">
                             <span class="slider round"></span>
                         </label>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span data-i18n="wake_lock">Giữ màn hình luôn sáng:</span>
+                        <span data-i18n="wake_lock">Giữ màn hình luôn sáng (Wake Lock):</span>
                         <label class="switch">
                             <input type="checkbox" id="wake-lock-toggle" onchange="toggleWakeLock(this.checked)">
                             <span class="slider round"></span>
                         </label>
                     </div>
-                    <small style="font-size:11px; opacity:0.7;" data-i18n="keep_alive_note">* Để theo dõi tốc độ chính xác, không vuốt để đóng hẳn ứng dụng.</small>
+                    <small style="color:#d32f2f; font-weight:bold; font-size:11px;" data-i18n="keep_alive_note">* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.</small>
                 </div>
             </div>
 
