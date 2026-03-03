@@ -67,7 +67,10 @@ const translations = {
         keep_alive_note: "* Bật cả 2 để PiP và GPS cập nhật chính xác nhất khi chuyển app.",
         trip_started_title: "Chuyến đi bắt đầu!",
         trip_started_body: "Bạn đang di chuyển với tốc độ trên 10km/h. Chúc bạn có một chuyến đi an toàn!",
-        distance_notif: "Bạn đã di chuyển được {n} km.",
+        distance_notif: "Bạn đã di chuyển được {n} km. (📍 {coords})",
+        milestone_saved: "Đã lưu mốc {n} km!",
+        milestone_history: "Lịch sử mốc quãng đường",
+        no_milestones: "Chưa có mốc quãng đường nào",
         total_distance: "Quãng đường: ",
         prep_2days_title: "Chuẩn bị hành lý!",
         prep_2days_body: "Còn 2 ngày nữa là đến chuyến đi {name}. Hãy kiểm tra lại danh sách chuẩn bị nhé!",
@@ -135,7 +138,10 @@ const translations = {
         keep_alive_note: "* Enable both for best PiP/GPS updates in background.",
         trip_started_title: "Trip Started!",
         trip_started_body: "You are moving at over 10km/h. Have a safe journey!",
-        distance_notif: "You have traveled {n} km.",
+        distance_notif: "You have traveled {n} km. (📍 {coords})",
+        milestone_saved: "Milestone {n} km saved!",
+        milestone_history: "Distance Milestones",
+        no_milestones: "No milestones yet",
         total_distance: "Distance: ",
         prep_2days_title: "Prepare your luggage!",
         prep_2days_body: "2 days left until {name}. Check your checklist!",
@@ -240,6 +246,7 @@ let diaries = [];
 let spendings = [];
 let budget = 1000000;
 let savedMarkers = {};
+let milestones = [];
 let checklist = [];
 let emergencyInfo = '';
 let isDarkMode = localStorage.getItem('darkMode') === 'true';
@@ -296,10 +303,13 @@ function loadTripData() {
         spendings = trip.spendings || [];
         budget = trip.budget || 1000000;
         savedMarkers = trip.markers || {};
+        milestones = trip.milestones || [];
+        totalDistance = trip.totalDistance || 0;
+        lastKmNotified = Math.floor(totalDistance / 1000);
         checklist = trip.checklist || [];
         emergencyInfo = trip.emergencyInfo || '';
     } else {
-        diaries = []; spendings = []; budget = 1000000; savedMarkers = {}; checklist = []; emergencyInfo = '';
+        diaries = []; spendings = []; budget = 1000000; savedMarkers = {}; milestones = []; totalDistance = 0; lastKmNotified = 0; checklist = []; emergencyInfo = '';
     }
 }
 
@@ -311,6 +321,8 @@ function syncTripData() {
         trips[index].spendings = spendings;
         trips[index].budget = budget;
         trips[index].markers = savedMarkers;
+        trips[index].milestones = milestones;
+        trips[index].totalDistance = totalDistance;
         trips[index].checklist = checklist;
         trips[index].emergencyInfo = emergencyInfo;
         saveTrips();
@@ -396,7 +408,9 @@ function startGlobalGpsWatch() {
             // Check for KM notifications
             const currentKm = Math.floor(totalDistance / 1000);
             if (currentKm > lastKmNotified && currentKm > 0) {
-                sendDistanceNotification(currentKm);
+                const milestoneCoords = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                recordMilestone(currentKm, milestoneCoords);
+                sendDistanceNotification(currentKm, milestoneCoords);
                 lastKmNotified = currentKm;
             }
 
@@ -435,13 +449,39 @@ function startGlobalGpsWatch() {
     }
 }
 
-function sendDistanceNotification(km) {
+function sendDistanceNotification(km, coords) {
     if (motionNotifyEnabled && Notification.permission === "granted") {
         sendNotification(
             translations[currentLang].nav_diary,
-            translations[currentLang].distance_notif.replace('{n}', km)
+            translations[currentLang].distance_notif.replace('{n}', km).replace('{coords}', coords)
         );
     }
+}
+
+function recordMilestone(km, coords) {
+    const milestone = {
+        km: km,
+        coords: coords,
+        time: Date.now()
+    };
+    milestones.push(milestone);
+    syncTripData();
+    if (currentSection === 'map') renderMilestones();
+}
+
+function renderMilestones() {
+    const list = document.getElementById('milestone-list');
+    if (!list) return;
+    if (milestones.length === 0) {
+        list.innerHTML = `<li style="text-align:center; color:#888; font-size:12px;">${translations[currentLang].no_milestones}</li>`;
+        return;
+    }
+    list.innerHTML = milestones.slice().reverse().map(m => `
+        <li style="font-size:12px; border-bottom:1px solid #eee; padding:5px 0;">
+            <strong>${m.km} km</strong> - <small>${new Date(m.time).toLocaleTimeString()}</small><br>
+            <span style="color:#666;">📍 ${m.coords}</span>
+        </li>
+    `).join('');
 }
 
 function checkTripPrepNotifications() {
@@ -1191,6 +1231,7 @@ function initMap() {
     });
 
     // Speedometer initial value
+    renderMilestones();
     const speedEl = document.getElementById('speed-value');
     if (speedEl) speedEl.innerText = currentKmh;
     const distEl = document.getElementById('total-distance-value');

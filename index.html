@@ -241,6 +241,12 @@
                 </div>
             </div>
             <div id="map"></div>
+            <div id="milestone-history" style="margin-top: 15px; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 8px;">
+                <h3 style="margin-top: 0; font-size: 14px; display: flex; align-items: center; justify-content: space-between;" data-i18n="milestone_history">Lịch sử mốc quãng đường</h3>
+                <ul id="milestone-list" style="list-style: none; padding: 0; max-height: 150px; overflow-y: auto;">
+                    <!-- Milestones will be listed here -->
+                </ul>
+            </div>
             <div class="map-controls">
                 <button id="pip-btn" onclick="togglePiP()" style="background:#673ab7; width:100%; margin-bottom:10px;" data-i18n="pip_btn">Hiện Cửa Sổ Nổi (Bản Đồ & Tốc Độ)</button>
                 <button onclick="markCurrentLocation('start')" style="background:#28a745;" data-i18n="mark_start">Điểm Đi</button>
