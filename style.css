@@ -1,9 +1,11 @@
 :root {
     --primary: #6366f1;
+    --primary-rgb: 99, 102, 241;
     --primary-hover: #4f46e5;
     --secondary: #64748b;
     --bg-body: #f8fafc;
     --bg-card: #ffffff;
+    --bg-card-rgb: 255, 255, 255;
     --text-main: #1e293b;
     --text-muted: #64748b;
     --border: #e2e8f0;
@@ -18,6 +20,7 @@
 body.dark-mode {
     --bg-body: #0f172a;
     --bg-card: #1e293b;
+    --bg-card-rgb: 30, 41, 59;
     --text-main: #f1f5f9;
     --text-muted: #94a3b8;
     --border: #334155;
@@ -41,10 +44,11 @@ body {
 }
 
 header {
-    background-color: rgba(var(--primary), 0.9);
+    background-color: rgba(var(--primary-rgb), 0.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
     padding: 0 20px;
     height: var(--header-h);
     position: sticky;
@@ -163,7 +167,7 @@ button:active {
     left: 0;
     right: 0;
     height: var(--nav-h);
-    background: rgba(var(--bg-card), 0.9);
+    background: rgba(var(--bg-card-rgb), 0.85);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
     display: flex;
@@ -393,6 +397,77 @@ input:checked + .slider:before {
 
 #content > section {
     animation: fadeIn 0.4s ease-out;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    width: 90%;
+    max-width: 500px;
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+}
+
+.config-group {
+    margin-bottom: 20px;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.template-item {
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    background: var(--bg-body);
+}
+
+.template-item.selected {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.modal-actions button {
+    flex: 1;
 }
 
 /* Custom Scrollbar */

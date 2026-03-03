@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <meta name="theme-color" content="#6366f1">
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/000000/map-marker.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -50,6 +50,52 @@
                 <span data-i18n="nav_settings">Cài Đặt</span>
             </button>
         </nav>
+    </div>
+
+    <!-- PDF Customization Modal -->
+    <div id="pdf-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h3 data-i18n="pdf_config_title">Tùy Chỉnh Báo Cáo PDF</h3>
+
+            <div class="config-group">
+                <label data-i18n="pdf_template_label">Chọn mẫu thiết kế:</label>
+                <div class="template-grid" id="template-select">
+                    <!-- Templates will be injected here -->
+                </div>
+            </div>
+
+            <div class="config-group">
+                <label data-i18n="pdf_font_label">Font chữ:</label>
+                <select id="pdf-font-select">
+                    <option value="'Inter', sans-serif">Modern Sans (Inter)</option>
+                    <option value="'Playfair Display', serif">Elegant Serif (Playfair)</option>
+                    <option value="'JetBrains Mono', monospace">Technical Mono</option>
+                    <option value="'Dancing Script', cursive">Handwritten</option>
+                    <option value="'Montserrat', sans-serif">Geometric Sans</option>
+                    <option value="'Roboto', sans-serif">Roboto</option>
+                    <option value="'Lora', serif">Lora Serif</option>
+                    <option value="'Pacifico', cursive">Pacifico Script</option>
+                    <option value="'Oswald', sans-serif">Oswald Bold</option>
+                    <option value="'Quicksand', sans-serif">Quicksand Soft</option>
+                    <option value="'Caveat', cursive">Caveat Handwriting</option>
+                    <option value="'Abril Fatface', serif">Abril Display</option>
+                    <option value="'Raleway', sans-serif">Raleway Elegant</option>
+                    <option value="'Comfortaa', cursive">Comfortaa Round</option>
+                    <option value="'Cinzel', serif">Cinzel Decorative</option>
+                    <option value="'Exo 2', sans-serif">Exo 2 Tech</option>
+                </select>
+            </div>
+
+            <div class="config-group">
+                <label data-i18n="pdf_color_label">Màu nhấn chủ đạo:</label>
+                <input type="color" id="pdf-accent-color" value="#6366f1">
+            </div>
+
+            <div class="modal-actions">
+                <button onclick="closePdfModal()" style="background:var(--secondary);" data-i18n="cancel_btn">Hủy</button>
+                <button onclick="generateCustomPdf()" data-i18n="export_btn">Tạo PDF</button>
+            </div>
+        </div>
     </div>
 
     <!-- Hidden elements for Picture-in-Picture -->

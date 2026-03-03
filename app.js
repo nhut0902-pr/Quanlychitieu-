@@ -80,7 +80,13 @@ const translations = {
         notify_denied: "Bạn cần cấp quyền thông báo để sử dụng tính năng này.",
         trip_count: "mục nhật ký",
         spend_count: "khoản chi",
-        delete_btn: "Xóa"
+        delete_btn: "Xóa",
+        pdf_config_title: "Tùy Chỉnh Báo Cáo PDF",
+        pdf_template_label: "Chọn mẫu thiết kế:",
+        pdf_font_label: "Font chữ:",
+        pdf_color_label: "Màu nhấn chủ đạo:",
+        cancel_btn: "Hủy",
+        export_btn: "Tạo PDF"
     },
     en: {
         nav_diary: "Diary",
@@ -151,7 +157,13 @@ const translations = {
         notify_denied: "You need to grant notification permission to use this feature.",
         trip_count: "diaries",
         spend_count: "expenses",
-        delete_btn: "Delete"
+        delete_btn: "Delete",
+        pdf_config_title: "Customize PDF Report",
+        pdf_template_label: "Select template:",
+        pdf_font_label: "Font family:",
+        pdf_color_label: "Accent Color:",
+        cancel_btn: "Cancel",
+        export_btn: "Create PDF"
     }
 };
 
@@ -253,6 +265,12 @@ let isDarkMode = localStorage.getItem('darkMode') === 'true';
 
 function applyThemeColor(color) {
     document.documentElement.style.setProperty('--primary', color);
+    // Also update RGB for transparency support
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    document.documentElement.style.setProperty('--primary-rgb', `${r}, ${g}, ${b}`);
+
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) metaThemeColor.setAttribute('content', color);
 }
@@ -1163,48 +1181,295 @@ function sendTripStartedNotification() {
     }
 }
 
-async function generateTripReport() {
+const pdfTemplates = [
+    { id: 'modern', name: 'Modern Travel', nameEn: 'Modern Travel' },
+    { id: 'minimalist', name: 'Tối Giản', nameEn: 'Minimalist' },
+    { id: 'adventure', name: 'Phiêu Lưu', nameEn: 'Adventure' },
+    { id: 'classic', name: 'Cổ Điển', nameEn: 'Classic' },
+    { id: 'magazine', name: 'Tạp Chí', nameEn: 'Magazine' },
+    { id: 'scrapbook', name: 'Sổ Tay', nameEn: 'Scrapbook' },
+    { id: 'dark-lux', name: 'Huyền Bí', nameEn: 'Dark Luxury' },
+    { id: 'colorful', name: 'Sắc Màu', nameEn: 'Colorful' },
+    { id: 'business', name: 'Công Tác', nameEn: 'Business' },
+    { id: 'polaroid', name: 'Polaroid', nameEn: 'Polaroid Style' },
+    { id: 'skyline', name: 'Thành Phố', nameEn: 'Urban Skyline' },
+    { id: 'nature', name: 'Thiên Nhiên', nameEn: 'Nature Green' },
+    { id: 'vintage', name: 'Hoài Cổ', nameEn: 'Vintage Paper' },
+    { id: 'map-focus', name: 'Bản Đồ', nameEn: 'Map Focused' },
+    { id: 'timeline', name: 'Dòng Thời Gian', nameEn: 'Timeline' }
+];
+
+let selectedTemplate = 'modern';
+
+function generateTripReport() {
+    const modal = document.getElementById('pdf-modal');
+    modal.style.display = 'flex';
+
+    const grid = document.getElementById('template-select');
+    grid.innerHTML = pdfTemplates.map(t => `
+        <div class="template-item ${t.id === selectedTemplate ? 'selected' : ''}" onclick="selectPdfTemplate('${t.id}')">
+            ${currentLang === 'vi' ? t.name : t.nameEn}
+        </div>
+    `).join('');
+
+    document.getElementById('pdf-accent-color').value = primaryColor;
+}
+
+function selectPdfTemplate(id) {
+    selectedTemplate = id;
+    generateTripReport(); // Re-render to show selection
+}
+
+function closePdfModal() {
+    document.getElementById('pdf-modal').style.display = 'none';
+}
+
+async function generateCustomPdf() {
     const trip = getCurrentTrip();
     if (!trip) return;
 
-    const reportWindow = window.open('', '_blank');
+    const font = document.getElementById('pdf-font-select').value;
+    const accent = document.getElementById('pdf-accent-color').value;
     const totalSpent = spendings.reduce((sum, s) => sum + s.amount, 0);
 
+    // Prepare data
     let diariesHtml = '';
     for(const d of diaries) {
         let photosHtml = '';
         if (d.hasPhotos) {
             const photos = await getPhotos(d.id);
-            photosHtml = `<div style="display:flex; gap:10px; margin-top:10px;">
-                ${photos.map(p => `<img src="${p}" style="max-height:150px; border-radius:5px;">`).join('')}
+            photosHtml = `<div class="diary-photos">
+                ${photos.map(p => `<img src="${p}">`).join('')}
             </div>`;
         }
+
         diariesHtml += `
-            <div style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <strong>${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</strong> (${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')})<br>
-                Food: ${escapeHTML(d.food) || 'N/A'} | Cost: ${Number(d.cost).toLocaleString()}đ | Rating: ${d.rating}/5<br>
-                ${photosHtml}
+            <div class="diary-card">
+                <div class="card-header">
+                    <span class="route">${escapeHTML(d.start)} &rarr; ${escapeHTML(d.end)}</span>
+                    <span class="time">${new Date(d.time).toLocaleString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</span>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <span class="label">🍴 Món ăn:</span> <span>${escapeHTML(d.food) || '---'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">💰 Chi phí:</span> <span>${Number(d.cost).toLocaleString()}đ</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">📍 Tọa độ:</span> <span class="mono">${d.coords || '---'}</span>
+                    </div>
+                    <div class="rating">${'★'.repeat(d.rating)}${'☆'.repeat(5-d.rating)}</div>
+                    ${photosHtml}
+                </div>
             </div>
         `;
     }
 
-    reportWindow.document.write(`
+    // Create a hidden iframe for more reliable PDF generation
+    let iframe = document.getElementById('pdf-export-iframe');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'pdf-export-iframe';
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-10000px';
+        iframe.style.left = '-10000px';
+        document.body.appendChild(iframe);
+    }
+
+    const reportDoc = iframe.contentWindow.document;
+    reportDoc.open();
+
+    // Complex CSS generation based on template
+    let templateStyles = '';
+    if (selectedTemplate === 'modern') {
+        templateStyles = `
+            body { background: #f4f7f6; }
+            .container { max-width: 800px; margin: auto; background: white; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+            .report-header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid ${accent}; padding-bottom: 20px; }
+            .diary-card { border: 1px solid #eee; border-radius: 12px; margin-bottom: 25px; overflow: hidden; }
+            .card-header { background: ${accent}; color: white; padding: 15px 20px; display: flex; justify-content: space-between; }
+        `;
+    } else if (selectedTemplate === 'minimalist') {
+        templateStyles = `
+            body { background: white; color: #333; }
+            .container { max-width: 700px; margin: auto; padding: 50px 0; }
+            .report-header { border-left: 10px solid ${accent}; padding-left: 20px; margin-bottom: 50px; }
+            .diary-card { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+            .card-header { font-weight: bold; font-size: 1.2em; margin-bottom: 10px; border-bottom: none; color: ${accent}; }
+        `;
+    } else if (selectedTemplate === 'dark-lux') {
+        templateStyles = `
+            body { background: #1a1a1a; color: #eee; }
+            .container { max-width: 850px; margin: 40px auto; background: #2d2d2d; padding: 50px; border-radius: 20px; border: 1px solid ${accent}; }
+            .report-header { text-align: center; color: ${accent}; text-transform: uppercase; letter-spacing: 5px; margin-bottom: 60px; }
+            .diary-card { background: #3d3d3d; border-radius: 15px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.05); }
+            .card-header { border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px; }
+        `;
+    } else if (selectedTemplate === 'adventure') {
+        templateStyles = `
+            body { background: #fdf6e3; background-image: radial-gradient(#d3af37 0.5px, transparent 0.5px); background-size: 20px 20px; }
+            .container { max-width: 800px; margin: 30px auto; background: #fff; padding: 40px; border: 2px solid #5d4037; border-radius: 5px; }
+            .report-header { background: #5d4037; color: #fff; padding: 20px; transform: rotate(-1deg); margin-bottom: 40px; }
+            .diary-card { border: 2px dashed #8d6e63; margin-bottom: 30px; padding: 15px; background: #fffaf0; }
+        `;
+    } else if (selectedTemplate === 'magazine') {
+        templateStyles = `
+            body { background: #eee; }
+            .container { max-width: 900px; margin: auto; background: white; display: grid; grid-template-columns: 1fr; }
+            .report-header { padding: 80px 40px; background: #000; color: #fff; text-align: left; }
+            .report-header h1 { font-size: 4em; margin: 0; line-height: 1; }
+            .diary-card { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 40px; border-bottom: 1px solid #000; }
+        `;
+    } else if (selectedTemplate === 'scrapbook') {
+        templateStyles = `
+            body { background: #d7ccc8; }
+            .container { max-width: 800px; margin: 20px auto; padding: 40px; background: #fff; box-shadow: 5px 5px 15px rgba(0,0,0,0.2); position: relative; }
+            .diary-card { transform: rotate(${Math.random() * 4 - 2}deg); background: #fff; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 40px; border: 1px solid #ddd; }
+            .diary-card::before { content: ""; position: absolute; top: -10px; left: 50%; width: 100px; height: 30px; background: rgba(255,255,255,0.5); transform: translateX(-50%); }
+        `;
+    } else if (selectedTemplate === 'business') {
+        templateStyles = `
+            body { background: white; font-family: sans-serif; }
+            .container { max-width: 1000px; margin: auto; padding: 40px; }
+            .report-header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .diary-card { margin-top: 30px; }
+            .card-header { background: #f5f5f5; padding: 10px; border-bottom: 1px solid #333; }
+            .info-row { display: grid; grid-template-columns: 150px 1fr; border-bottom: 1px solid #eee; padding: 8px 0; }
+        `;
+    } else if (selectedTemplate === 'nature') {
+        templateStyles = `
+            body { background: #e8f5e9; }
+            .container { max-width: 800px; margin: auto; background: white; border-radius: 30px; padding: 50px; }
+            .report-header { color: #2e7d32; text-align: center; }
+            .diary-card { border: 2px solid #a5d6a7; border-radius: 20px; margin-bottom: 30px; padding: 20px; }
+            .rating { color: #2e7d32; }
+        `;
+    } else if (selectedTemplate === 'vintage') {
+        templateStyles = `
+            body { background: #3e2723; }
+            .container { max-width: 800px; margin: auto; background: #efebe9; color: #4e342e; padding: 60px; font-family: serif; }
+            .report-header { border-bottom: 1px solid #4e342e; padding-bottom: 20px; text-align: center; font-style: italic; }
+            .diary-card { border: 1px solid #bcaaa4; padding: 20px; margin-bottom: 30px; }
+        `;
+    } else if (selectedTemplate === 'colorful') {
+        templateStyles = `
+            body { background: ${accent}; }
+            .container { max-width: 800px; margin: 40px auto; background: white; border-radius: 20px; padding: 40px; }
+            .diary-card { background: #f3f4f6; border-radius: 15px; margin-bottom: 20px; border-left: 8px solid ${accent}; }
+        `;
+    } else if (selectedTemplate === 'skyline') {
+        templateStyles = `
+            body { background: #eceff1; }
+            .container { max-width: 800px; margin: auto; background: white; position: relative; overflow: hidden; padding: 40px; }
+            .container::after { content: "CITY"; position: absolute; bottom: -50px; right: -50px; font-size: 300px; color: rgba(0,0,0,0.03); font-weight: 900; z-index: 0; }
+            .diary-card { position: relative; z-index: 1; backdrop-filter: blur(5px); background: rgba(255,255,255,0.8); }
+        `;
+    } else if (selectedTemplate === 'polaroid') {
+        templateStyles = `
+            .diary-card { background: white; padding: 15px 15px 60px 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); margin-bottom: 50px; }
+            .diary-photos img { width: 100%; height: auto; border: 1px solid #eee; }
+            .card-header { padding: 20px 0; font-family: cursive; font-size: 1.5em; text-align: center; }
+        `;
+    } else if (selectedTemplate === 'timeline') {
+        templateStyles = `
+            .container { position: relative; padding-left: 50px; border-left: 4px solid ${accent}; margin-left: 100px; }
+            .diary-card { position: relative; margin-bottom: 60px; }
+            .diary-card::before { content: ""; position: absolute; left: -67px; top: 20px; width: 30px; height: 30px; background: ${accent}; border-radius: 50%; border: 5px solid white; }
+        `;
+    } else if (selectedTemplate === 'map-focus') {
+        templateStyles = `
+            .container { max-width: 900px; margin: auto; }
+            .diary-card { display: flex; gap: 30px; align-items: center; border: 1px solid #ddd; padding: 20px; margin-bottom: 20px; }
+            .mono { background: #000; color: #0f0; padding: 2px 5px; border-radius: 3px; }
+        `;
+    } else if (selectedTemplate === 'classic') {
+        templateStyles = `
+            body { font-family: "Times New Roman", serif; padding: 50px; }
+            .report-header { border-double: 3px double #000; padding: 20px; text-align: center; }
+            .diary-card { margin-top: 40px; page-break-inside: avoid; }
+        `;
+    }
+
+    reportDoc.write(`
         <html>
-        <head><title>Report: ${escapeHTML(trip.name)}</title>
-        <style>body{font-family:sans-serif; padding:20px; line-height:1.6;} .header{text-align:center; border-bottom:2px solid ${primaryColor}; padding-bottom:10px;}</style>
+        <head>
+            <title>Trip Report: ${escapeHTML(trip.name)}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:ital,wght@0,700;1,700&family=JetBrains+Mono:wght@700&family=Dancing+Script:wght@700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+                * { box-sizing: border-box; }
+                body { margin: 0; padding: 20px; font-family: ${font}; line-height: 1.6; }
+                .container { position: relative; z-index: 1; }
+                .report-header h1 { margin: 0; font-size: 2.5em; }
+                .summary-box { background: rgba(0,0,0,0.03); padding: 20px; border-radius: 10px; margin-bottom: 40px; display: flex; justify-content: space-around; }
+                .summary-item { text-align: center; }
+                .summary-item .val { font-size: 1.5em; font-weight: bold; color: ${accent}; display: block; }
+                .summary-item .lab { font-size: 0.8em; color: #666; text-transform: uppercase; }
+                .diary-card { margin-bottom: 30px; }
+                .card-body { padding: 20px; }
+                .info-row { margin-bottom: 8px; }
+                .label { font-weight: bold; margin-right: 10px; color: #555; }
+                .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.9em; }
+                .rating { color: #f59e0b; font-size: 1.2em; margin: 10px 0; }
+                .diary-photos { display: flex; gap: 10px; margin-top: 15px; overflow: hidden; }
+                .diary-photos img { max-height: 200px; border-radius: 8px; object-fit: cover; }
+                .footer { margin-top: 80px; text-align: center; font-size: 0.8em; opacity: 0.5; padding: 40px 0; border-top: 1px solid #eee; }
+                @media print {
+                    body { padding: 0; }
+                    .container { box-shadow: none !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+                }
+                ${templateStyles}
+            </style>
         </head>
         <body>
-            <div class="header"><h1>${currentLang === 'vi' ? 'TỔNG KẾT CHUYẾN ĐI' : 'TRIP SUMMARY'}: ${escapeHTML(trip.name)}</h1></div>
-            <p><strong>${currentLang === 'vi' ? 'Tổng chi tiêu' : 'Total spent'}:</strong> ${totalSpent.toLocaleString()}đ / ${currentLang === 'vi' ? 'Ngân sách' : 'Budget'}: ${Number(budget).toLocaleString()}đ</p>
-            <h3>${currentLang === 'vi' ? 'Chi tiết Nhật ký' : 'Diary Details'}:</h3>
-            ${diariesHtml}
-            <div style="margin-top: 50px; text-align: center; font-size: 12px; opacity: 0.5; border-top: 1px solid #eee; padding-top: 10px;">
-                Powered By Nhutcoder
+            <div class="container">
+                <div class="report-header">
+                    <h1>${escapeHTML(trip.name)}</h1>
+                    <p>${new Date(trip.startDate).toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US')}</p>
+                </div>
+                <div class="summary-box">
+                    <div class="summary-item">
+                        <span class="val">${diaries.length}</span>
+                        <span class="lab">${currentLang === 'vi' ? 'Điểm đến' : 'Destinations'}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="val">${totalSpent.toLocaleString()}đ</span>
+                        <span class="lab">${currentLang === 'vi' ? 'Tổng chi' : 'Total Spent'}</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="val">${(totalDistance / 1000).toFixed(1)}km</span>
+                        <span class="lab">${currentLang === 'vi' ? 'Quãng đường' : 'Distance'}</span>
+                    </div>
+                </div>
+                <div class="diary-list">
+                    ${diariesHtml}
+                </div>
+                <div class="footer">
+                    <p>Báo cáo chuyến đi được tạo bởi <strong>Nhật Ký Chuyến Đi PWA</strong></p>
+                    <p>Powered By Nhutcoder</p>
+                </div>
             </div>
-            <script>window.onload = () => { setTimeout(() => { window.print(); }, 500); };</script>
+            <script>
+                window.onload = () => {
+                    setTimeout(() => {
+                        window.print();
+                        // Optional: cleanup or notify user
+                    }, 1000);
+                };
+            </script>
         </body>
         </html>
     `);
+
+    reportDoc.close();
+
+    // Trigger print from iframe
+    setTimeout(() => {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    }, 1500);
+
+    closePdfModal();
 }
 
 function exportData() {
