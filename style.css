@@ -529,7 +529,6 @@ input:checked + .slider:before {
     padding: 24px;
     border-radius: 20px;
     margin-bottom: 24px;
-    text-align: center;
     box-shadow: var(--shadow-lg);
     display: none;
 }

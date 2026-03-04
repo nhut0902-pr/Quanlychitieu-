@@ -145,20 +145,20 @@
                 <form id="weather-form" style="margin-bottom:12px;">
                     <div style="display:flex; gap:8px;">
                         <input type="text" id="weather-search" placeholder="Nhập tên thành phố..." style="flex:1;">
-                        <button type="submit" style="width:48px; padding:0;">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <button type="submit" style="width:54px; height:48px; padding:0; background:var(--primary); color:white; flex-shrink:0;">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         </button>
                     </div>
                 </form>
-                <button onclick="getWeatherAtCurrentLocation()" style="background:var(--secondary); font-size:13px; padding:8px; width:100%; margin-bottom:20px;">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                    <span data-i18n="weather_get_current">Lấy thời tiết tại đây</span>
+                <button onclick="getWeatherAtCurrentLocation()" style="background:var(--primary); font-size:14px; padding:12px; width:100%; margin-bottom:20px; box-shadow: var(--shadow); border: 2px solid rgba(255,255,255,0.2);">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    <strong data-i18n="weather_get_current">Cập nhật thời tiết bằng GPS</strong>
                 </button>
             </div>
 
-            <div id="weather-display" class="weather-display-card">
+            <div id="weather-msg" style="text-align:center; color:var(--text-muted); padding:20px 0;"></div>
+            <div id="weather-display" class="weather-display-card" style="display:none;">
                 <!-- Weather info will be injected here -->
-                <p style="text-align:center; color:var(--text-muted); padding:40px 0;" data-i18n="weather_loading" id="weather-msg">Chưa có dữ liệu</p>
             </div>
 
             <div id="weather-forecast" class="weather-forecast-grid">
@@ -313,6 +313,10 @@
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:500;" data-i18n="theme_color">Màu chủ đạo:</span>
                         <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:48px; height:32px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:none;">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <span style="font-weight:500; font-size:14px;" data-i18n="weather_api_key_label">Mã WeatherAPI.com (Key):</span>
+                        <input type="text" id="weather-api-key-input" onchange="updateWeatherKey(this.value)" style="font-size:13px;">
                     </div>
                 </div>
             </div>
