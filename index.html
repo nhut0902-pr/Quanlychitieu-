@@ -164,6 +164,19 @@
             <div id="weather-forecast" class="weather-forecast-grid">
                 <!-- Forecast will be injected here -->
             </div>
+
+            <div class="extra-group" style="margin-top:24px; padding:16px; border: 1px dashed var(--border);">
+                <h3 style="margin-top:0; font-size:14px;" data-i18n="weather_manual_update">Cập nhật thủ công (Offline)</h3>
+                <form id="weather-manual-form">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                        <input type="number" id="manual-temp" placeholder="25" required>
+                        <input type="text" id="manual-desc" placeholder="Nắng đẹp" required>
+                    </div>
+                    <button type="submit" style="background:var(--secondary); font-size:12px; padding:8px;">
+                        <span data-i18n="save_btn">Lưu</span>
+                    </button>
+                </form>
+            </div>
         </section>
     </template>
 

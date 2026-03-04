@@ -104,11 +104,11 @@ const translations = {
         updates_btn: "Bản Cập Nhật",
         help_title: "Hướng Dẫn Sử Dụng",
         terms_title: "Điều Khoản & Quyền Riêng Tư",
-        updates_title: "Thông Tin Bản Cập Nhật 1.2.1",
-        update_notice: "Có bản cập nhật mới (1.2.1)!",
+        updates_title: "Thông Tin Bản Cập Nhật 1.2.2",
+        update_notice: "Có bản cập nhật mới (1.2.2)!",
         manual_content: "• Nhật ký: Ghi lại hành trình, ảnh và đánh giá.<br>• Lịch trình: Lên kế hoạch thời gian cho chuyến đi.<br>• Chi tiêu: Quản lý ngân sách và xem biểu đồ.<br>• Bản đồ: Đánh dấu GPS và theo dõi tốc độ (hỗ trợ PiP).<br>• Xuất PDF: Tạo báo cáo đẹp mắt để lưu niệm.",
         terms_content: "Dữ liệu của bạn được lưu hoàn toàn trên thiết bị (Offline). Chúng tôi không thu thập bất kỳ thông tin nào. Sử dụng GPS chỉ phục vụ mục đích đánh dấu vị trí và đo tốc độ trong ứng dụng.",
-        updates_content: "<b>Phiên bản 1.2.1</b><br><br>Tính năng mới:<br>• Thêm tính năng Tra cứu thời tiết.<br>• Thêm tính năng Lịch Trình chuyến đi.<br>• Thêm hướng dẫn sử dụng & điều khoản.<br>• Cải thiện giao diện xuất PDF.<br><br>Lỗi đã sửa:<br>• Fix lỗi xem trước PDF bị hiển thị 1 nửa trên mobile.<br>• Tối ưu hiệu suất chạy ngầm.",
+        updates_content: "<b>Phiên bản 1.2.2</b><br><br>Tính năng mới:<br>• Hỗ trợ thời tiết Hybrid (Online & Manual Offline).<br>• Lưu bản sao thời tiết cuối cùng để xem khi không có mạng.<br>• Thêm tính năng Lịch Trình chuyến đi.<br>• Thêm hướng dẫn sử dụng & điều khoản.<br>• Cải thiện giao diện xuất PDF.<br><br>Lỗi đã sửa:<br>• Fix lỗi xem trước PDF bị hiển thị 1 nửa trên mobile.<br>• Tối ưu hiệu suất chạy ngầm.",
         weather_title: "Dự Báo Thời Tiết",
         weather_search_placeholder: "Nhập tên thành phố...",
         weather_loading: "Đang lấy dữ liệu...",
@@ -117,7 +117,13 @@ const translations = {
         weather_feels_like: "Cảm giác như",
         weather_humidity: "Độ ẩm",
         weather_wind: "Gió",
-        weather_get_current: "Lấy thời tiết tại đây"
+        weather_get_current: "Lấy thời tiết tại đây",
+        weather_manual_update: "Cập nhật thủ công (Offline)",
+        weather_last_updated: "Cập nhật lúc: ",
+        weather_manual_temp: "Nhiệt độ (°C):",
+        weather_manual_desc: "Tình trạng (vd: Nắng, Mưa):",
+        manual_temp_placeholder: "25",
+        manual_desc_placeholder: "Nắng đẹp"
     },
     en: {
         nav_diary: "Diary",
@@ -212,11 +218,11 @@ const translations = {
         updates_btn: "What's New",
         help_title: "User Manual",
         terms_title: "Terms & Privacy",
-        updates_title: "Update 1.2.1 Info",
-        update_notice: "New update available (1.2.1)!",
-        manual_content: "• Diary: Log journey, photos and ratings.<br>• Itinerary: Plan your trip schedule.<br>• Spending: Manage budget and view charts.<br>• Map: Mark GPS points and track speed (PiP supported).<br>• Export PDF: Create beautiful reports for memories.",
+        updates_title: "Update 1.2.2 Info",
+        update_notice: "New update available (1.2.2)!",
+        manual_content: "• Diary: Log journey, photos and ratings.<br>• Itinerary: Plan your trip schedule.<br>• Weather: Hybrid support (Online API + Manual Offline).<br>• Spending: Manage budget and view charts.<br>• Map: Mark GPS points and track speed (PiP supported).<br>• Export PDF: Create beautiful reports for memories.",
         terms_content: "Your data is stored entirely on your device (Offline). We do not collect any information. GPS usage is only for marking locations and speed tracking within the app.",
-        updates_content: "<b>Version 1.2.1</b><br><br>New Features:<br>• Added Weather Forecast feature.<br>• Added Trip Itinerary feature.<br>• Added manual and terms sections.<br>• Improved PDF export interface.<br><br>Bug Fixes:<br>• Fixed PDF preview clipped issue on mobile.<br>• Optimized background performance.",
+        updates_content: "<b>Version 1.2.2</b><br><br>New Features:<br>• Hybrid Weather support (Online & Manual Offline).<br>• Weather data persistence for offline viewing.<br>• Added Trip Itinerary feature.<br>• Added manual and terms sections.<br>• Improved PDF export interface.<br><br>Bug Fixes:<br>• Fixed PDF preview clipped issue on mobile.<br>• Optimized background performance.",
         weather_title: "Weather Forecast",
         weather_search_placeholder: "Enter city name...",
         weather_loading: "Loading weather...",
@@ -225,7 +231,13 @@ const translations = {
         weather_feels_like: "Feels like",
         weather_humidity: "Humidity",
         weather_wind: "Wind",
-        weather_get_current: "Get current location weather"
+        weather_get_current: "Get current location weather",
+        weather_manual_update: "Manual Update (Offline)",
+        weather_last_updated: "Last updated: ",
+        weather_manual_temp: "Temperature (°C):",
+        weather_manual_desc: "Condition (e.g. Sunny, Rain):",
+        manual_temp_placeholder: "25",
+        manual_desc_placeholder: "Clear sky"
     }
 };
 
@@ -360,7 +372,9 @@ function updateLanguage() {
         'spend-amount': 'price_placeholder',
         'checklist-item': 'checklist_placeholder',
         'emergency-info': 'emergency_placeholder',
-        'weather-search': 'weather_search_placeholder'
+        'weather-search': 'weather_search_placeholder',
+        'manual-temp': 'manual_temp_placeholder',
+        'manual-desc': 'manual_desc_placeholder'
     };
 
     for (let id in placeholders) {
@@ -423,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateLanguage();
 
     const lastVersion = localStorage.getItem('lastAppVersion');
-    const currentVersion = '1.2.1';
+    const currentVersion = '1.2.2';
     if (lastVersion !== currentVersion) {
         setTimeout(() => {
             showUpdates();
@@ -1044,10 +1058,42 @@ function initWeather() {
         };
     }
 
+    const manualForm = document.getElementById('weather-manual-form');
+    if (manualForm) {
+        manualForm.onsubmit = (e) => {
+            e.preventDefault();
+            const temp = document.getElementById('manual-temp').value;
+            const desc = document.getElementById('manual-desc').value;
+            saveManualWeather(temp, desc);
+        };
+    }
+
+    // Load cached weather if exists
+    const cached = JSON.parse(localStorage.getItem('weather_cache'));
+    if (cached) {
+        renderWeather(cached, true);
+        if (cached.forecast) renderForecast(cached.forecast);
+    }
+
     // Auto-fetch current location weather if possible
     if (currentLocation) {
         fetchWeather(currentLocation[0], currentLocation[1]);
     }
+}
+
+function saveManualWeather(temp, desc) {
+    const manualData = {
+        name: currentLang === 'vi' ? 'Thủ công' : 'Manual',
+        sys: { country: '---' },
+        weather: [{ description: desc, icon: '01d' }],
+        main: { temp: temp, feels_like: temp, humidity: '--' },
+        wind: { speed: '--' },
+        isManual: true,
+        timestamp: Date.now()
+    };
+    renderWeather(manualData);
+    localStorage.setItem('weather_cache', JSON.stringify(manualData));
+    document.getElementById('weather-forecast').innerHTML = ''; // Clear forecast for manual entry
 }
 
 async function fetchWeather(lat, lon) {
@@ -1058,13 +1104,20 @@ async function fetchWeather(lat, lon) {
         const data = await response.json();
 
         if (data.cod === 200) {
+            data.timestamp = Date.now();
             renderWeather(data);
+            localStorage.setItem('weather_cache', JSON.stringify(data));
             fetchForecast(lat, lon);
         } else {
             updateWeatherMsg(translations[currentLang].weather_error);
         }
     } catch (err) {
-        updateWeatherMsg(translations[currentLang].weather_offline_msg);
+        const cached = JSON.parse(localStorage.getItem('weather_cache'));
+        if (cached) {
+            renderWeather(cached, true);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_offline_msg);
+        }
     }
 }
 
@@ -1076,13 +1129,20 @@ async function fetchWeatherByCity(city) {
         const data = await response.json();
 
         if (data.cod === 200) {
+            data.timestamp = Date.now();
             renderWeather(data);
+            localStorage.setItem('weather_cache', JSON.stringify(data));
             fetchForecast(data.coord.lat, data.coord.lon);
         } else {
             updateWeatherMsg(translations[currentLang].weather_error);
         }
     } catch (err) {
-        updateWeatherMsg(translations[currentLang].weather_offline_msg);
+        const cached = JSON.parse(localStorage.getItem('weather_cache'));
+        if (cached) {
+            renderWeather(cached, true);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_offline_msg);
+        }
     }
 }
 
@@ -1094,6 +1154,11 @@ async function fetchForecast(lat, lon) {
 
         if (data.cod === "200") {
             renderForecast(data);
+            const cached = JSON.parse(localStorage.getItem('weather_cache'));
+            if (cached) {
+                cached.forecast = data;
+                localStorage.setItem('weather_cache', JSON.stringify(cached));
+            }
         }
     } catch (err) {
         console.error("Forecast Error:", err);
@@ -1118,7 +1183,7 @@ function updateWeatherMsg(msg) {
     if (display) display.style.display = 'none';
 }
 
-function renderWeather(data) {
+function renderWeather(data, isCached = false) {
     const display = document.getElementById('weather-display');
     const msg = document.getElementById('weather-msg');
     if (!display) return;
@@ -1130,10 +1195,16 @@ function renderWeather(data) {
     const desc = data.weather[0].description;
     const temp = Math.round(data.main.temp);
     const feels = Math.round(data.main.feels_like);
+    const timeStr = data.timestamp ? new Date(data.timestamp).toLocaleString() : '';
 
     display.innerHTML = `
-        <div style="font-size:18px; font-weight:700; margin-bottom:4px;">${data.name}, ${data.sys.country}</div>
-        <div style="text-transform: capitalize; opacity: 0.9; font-size:14px;">${desc}</div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <div style="font-size:18px; font-weight:700; margin-bottom:4px;">${data.name}, ${data.sys.country}</div>
+                <div style="text-transform: capitalize; opacity: 0.9; font-size:14px;">${desc}</div>
+            </div>
+            ${data.isManual ? '<span style="background:var(--primary); color:white; font-size:10px; padding:2px 6px; border-radius:10px;">OFFLINE</span>' : ''}
+        </div>
         <div class="weather-temp">
             <img src="https://openweathermap.org/img/wn/${icon}@2x.png" width="80" height="80">
             <span>${temp}°C</span>
@@ -1152,6 +1223,7 @@ function renderWeather(data) {
                 <strong>${data.wind.speed}m/s</strong>
             </div>
         </div>
+        ${timeStr ? `<div style="text-align:center; font-size:11px; opacity:0.6; margin-top:12px;">${translations[currentLang].weather_last_updated} ${timeStr}</div>` : ''}
     `;
 }
 
