@@ -157,6 +157,12 @@
             </div>
 
             <div id="weather-msg" style="text-align:center; color:var(--text-muted); padding:20px 0;"></div>
+
+            <div id="weather-map-container" style="display:none; margin-bottom: 20px;">
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;" data-i18n="weather_map_hint">Chọn vị trí trên bản đồ để xem thời tiết:</p>
+                <div id="weather-mini-map" style="height: 200px; border-radius: 12px; border: 1px solid var(--border);"></div>
+            </div>
+
             <div id="weather-display" class="weather-display-card" style="display:none;">
                 <!-- Weather info will be injected here -->
             </div>
@@ -314,9 +320,20 @@
                         <span style="font-weight:500;" data-i18n="theme_color">Màu chủ đạo:</span>
                         <input type="color" id="theme-color-picker" onchange="changeThemeColor(this.value)" style="width:48px; height:32px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer; background:none;">
                     </div>
-                    <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:500;" data-i18n="weather_provider">Dịch vụ thời tiết:</span>
+                        <select id="weather-provider-select" onchange="changeWeatherProvider(this.value)" style="width:140px;">
+                            <option value="weatherapi">WeatherAPI.com</option>
+                            <option value="openweathermap">OpenWeatherMap</option>
+                        </select>
+                    </div>
+                    <div id="weatherapi-key-container" style="display:flex; flex-direction:column; gap:8px;">
                         <span style="font-weight:500; font-size:14px;" data-i18n="weather_api_key_label">Mã WeatherAPI.com (Key):</span>
-                        <input type="text" id="weather-api-key-input" onchange="updateWeatherKey(this.value)" style="font-size:13px;">
+                        <input type="text" id="weatherapi-key-input" onchange="updateWeatherKey('weatherapi', this.value)" style="font-size:13px;">
+                    </div>
+                    <div id="openweathermap-key-container" style="display:none; flex-direction:column; gap:8px;">
+                        <span style="font-weight:500; font-size:14px;" data-i18n="owm_api_key_label">Mã OpenWeatherMap (Key):</span>
+                        <input type="text" id="owm-api-key-input" onchange="updateWeatherKey('openweathermap', this.value)" style="font-size:13px;">
                     </div>
                 </div>
             </div>

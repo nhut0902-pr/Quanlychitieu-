@@ -124,7 +124,10 @@ const translations = {
         weather_manual_desc: "Tình trạng (vd: Nắng, Mưa):",
         manual_temp_placeholder: "25",
         manual_desc_placeholder: "Nắng đẹp",
-        weather_api_key_label: "Mã WeatherAPI.com (Key):"
+        weather_api_key_label: "Mã WeatherAPI.com (Key):",
+        weather_provider: "Dịch vụ thời tiết:",
+        owm_api_key_label: "Mã OpenWeatherMap (Key):",
+        weather_map_hint: "Chọn vị trí trên bản đồ để xem thời tiết:"
     },
     en: {
         nav_diary: "Diary",
@@ -239,7 +242,10 @@ const translations = {
         weather_manual_desc: "Condition (e.g. Sunny, Rain):",
         manual_temp_placeholder: "25",
         manual_desc_placeholder: "Clear sky",
-        weather_api_key_label: "WeatherAPI.com Key:"
+        weather_api_key_label: "WeatherAPI.com Key:",
+        weather_provider: "Weather Provider:",
+        owm_api_key_label: "OpenWeatherMap Key:",
+        weather_map_hint: "Select a location on the map to see weather:"
     }
 };
 
@@ -1047,29 +1053,59 @@ function deleteItinerary(id) {
     }
 }
 
-// --- Weather Logic (Using WeatherAPI.com) ---
-let weatherApiKey = localStorage.getItem('weatherApiKey') || '8115668b8e0544f8819102434241505'; // WeatherAPI.com Key
+// --- Weather Logic (Hybrid Providers) ---
+let weatherProvider = localStorage.getItem('weatherProvider') || 'weatherapi';
+let weatherapi_key = localStorage.getItem('weatherapi_key') || '';
+let openweather_key = localStorage.getItem('openweather_key') || '';
+let weatherMiniMap = null;
+let weatherMarker = null;
 
-function updateWeatherKey(key) {
-    weatherApiKey = key;
-    localStorage.setItem('weatherApiKey', key);
+function changeWeatherProvider(provider) {
+    weatherProvider = provider;
+    localStorage.setItem('weatherProvider', provider);
+
+    // Update key container visibility if on settings page
+    const wapiContainer = document.getElementById('weatherapi-key-container');
+    const owmContainer = document.getElementById('openweathermap-key-container');
+    if (wapiContainer && owmContainer) {
+        wapiContainer.style.display = provider === 'weatherapi' ? 'flex' : 'none';
+        owmContainer.style.display = provider === 'openweathermap' ? 'flex' : 'none';
+    }
+
+    if (currentSection === 'weather') initWeather();
+}
+
+function updateWeatherKey(provider, key) {
+    if (provider === 'weatherapi') {
+        weatherapi_key = key;
+        localStorage.setItem('weatherapi_key', key);
+    } else {
+        openweather_key = key;
+        localStorage.setItem('openweather_key', key);
+    }
     alert(currentLang === 'vi' ? "Đã lưu mã API mới!" : "New API Key saved!");
 }
 
 function initWeather() {
     const form = document.getElementById('weather-form');
     if (form) {
-        // Ensure no multiple listeners
         form.onsubmit = null;
         form.onsubmit = (e) => {
             e.preventDefault();
             const city = document.getElementById('weather-search').value;
-            console.log("Searching weather for:", city);
             if (city.trim()) {
-                fetchWeatherData(city);
+                if (weatherProvider === 'weatherapi') fetchWeatherData(city);
+                else fetchOWMDataByCity(city);
             }
             return false;
         };
+    }
+
+    // Toggle Map visibility
+    const mapContainer = document.getElementById('weather-map-container');
+    if (mapContainer) {
+        mapContainer.style.display = weatherProvider === 'openweathermap' ? 'block' : 'none';
+        if (weatherProvider === 'openweathermap') initWeatherMiniMap();
     }
 
     const manualForm = document.getElementById('weather-manual-form');
@@ -1114,10 +1150,14 @@ function saveManualWeather(temp, desc) {
 }
 
 async function fetchWeatherData(query) {
+    if (!weatherapi_key && weatherProvider === 'weatherapi') {
+        updateWeatherMsg(currentLang === 'vi' ? "Vui lòng nhập API Key trong Cài đặt" : "Please enter API Key in Settings");
+        return;
+    }
     updateWeatherMsg(translations[currentLang].weather_loading);
     try {
         const langCode = currentLang === 'vi' ? 'vi' : 'en';
-        const url = `https://api.weatherapi.com/v1/forecast.json?key=${weatherApiKey}&q=${query}&days=5&aqi=no&alerts=no&lang=${langCode}`;
+        const url = `https://api.weatherapi.com/v1/forecast.json?key=${weatherapi_key}&q=${query}&days=5&aqi=no&alerts=no&lang=${langCode}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -1132,7 +1172,11 @@ async function fetchWeatherData(query) {
                 humidity: data.current.humidity,
                 wind: data.current.wind_kph,
                 timestamp: Date.now(),
-                forecast: data.forecast.forecastday
+                forecast: data.forecast.forecastday.map(f => ({
+                    date_epoch: f.date_epoch,
+                    temp: Math.round(f.day.avgtemp_c),
+                    icon: 'https:' + f.day.condition.icon
+                }))
             };
 
             renderWeather(weatherData);
@@ -1142,19 +1186,122 @@ async function fetchWeatherData(query) {
             updateWeatherMsg(translations[currentLang].weather_error);
         }
     } catch (err) {
-        const cached = JSON.parse(localStorage.getItem('weather_cache'));
-        if (cached) {
-            renderWeather(cached, true);
-        } else {
-            updateWeatherMsg(translations[currentLang].weather_offline_msg);
-        }
+        handleWeatherError();
     }
+}
+
+async function fetchOWMDataByCity(city) {
+    if (!openweather_key) return alert(currentLang === 'vi' ? "Vui lòng nhập OpenWeatherMap Key trong Cài đặt" : "Please enter OpenWeatherMap Key in Settings");
+    updateWeatherMsg(translations[currentLang].weather_loading);
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${openweather_key}&units=metric&lang=${currentLang}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.cod == 200) {
+            fetchOWMForecast(data.coord.lat, data.coord.lon, data);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_error);
+        }
+    } catch (e) { handleWeatherError(); }
+}
+
+async function fetchOWMDataByCoords(lat, lon) {
+    if (!openweather_key) return alert("Missing OWM Key");
+    updateWeatherMsg(translations[currentLang].weather_loading);
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${openweather_key}&units=metric&lang=${currentLang}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.cod == 200) {
+            fetchOWMForecast(lat, lon, data);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_error);
+        }
+    } catch (e) { handleWeatherError(); }
+}
+
+async function fetchOWMForecast(lat, lon, currentData) {
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${openweather_key}&units=metric&lang=${currentLang}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        // Process OWM 5-day/3-hour forecast to daily
+        const daily = [];
+        const seenDates = new Set();
+        data.list.forEach(item => {
+            const dateStr = item.dt_txt.split(' ')[0];
+            if (!seenDates.has(dateStr)) {
+                seenDates.add(dateStr);
+                daily.push({
+                    date_epoch: item.dt,
+                    temp: Math.round(item.main.temp),
+                    icon: `https://openweathermap.org/img/wn/${item.weather[0].icon}@2x.png`
+                });
+            }
+        });
+
+        const weatherData = {
+            name: currentData.name,
+            country: currentData.sys.country,
+            desc: currentData.weather[0].description,
+            icon: `https://openweathermap.org/img/wn/${currentData.weather[0].icon}@2x.png`,
+            temp: Math.round(currentData.main.temp),
+            feelslike: Math.round(currentData.main.feels_like),
+            humidity: currentData.main.humidity,
+            wind: Math.round(currentData.wind.speed * 3.6),
+            timestamp: Date.now(),
+            forecast: daily.slice(0, 5)
+        };
+
+        renderWeather(weatherData);
+        renderForecast(weatherData.forecast);
+        localStorage.setItem('weather_cache', JSON.stringify(weatherData));
+    } catch (e) { handleWeatherError(); }
+}
+
+function handleWeatherError() {
+    const cached = JSON.parse(localStorage.getItem('weather_cache'));
+    if (cached) {
+        renderWeather(cached, true);
+    } else {
+        updateWeatherMsg(translations[currentLang].weather_offline_msg);
+    }
+}
+
+function initWeatherMiniMap() {
+    setTimeout(() => {
+        const mapEl = document.getElementById('weather-mini-map');
+        if (!mapEl) return;
+        if (weatherMiniMap) {
+            weatherMiniMap.remove();
+        }
+
+        let center = currentLocation || [10.7769, 106.7009];
+        weatherMiniMap = L.map('weather-mini-map').setView(center, 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(weatherMiniMap);
+
+        weatherMiniMap.on('click', (e) => {
+            const { lat, lng } = e.latlng;
+            if (weatherMarker) weatherMiniMap.removeLayer(weatherMarker);
+            weatherMarker = L.marker([lat, lng]).addTo(weatherMiniMap);
+            fetchOWMDataByCoords(lat, lng);
+        });
+
+        if (currentLocation) {
+            weatherMarker = L.marker(currentLocation).addTo(weatherMiniMap);
+        }
+    }, 300);
 }
 
 function getWeatherAtCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(pos => {
-            fetchWeatherData(`${pos.coords.latitude},${pos.coords.longitude}`);
+            if (weatherProvider === 'weatherapi') {
+                fetchWeatherData(`${pos.coords.latitude},${pos.coords.longitude}`);
+            } else {
+                fetchOWMDataByCoords(pos.coords.latitude, pos.coords.longitude);
+            }
         }, (err) => {
             alert("Lỗi GPS: " + err.message);
         }, { enableHighAccuracy: true });
@@ -1220,14 +1367,12 @@ function renderForecast(forecastDays) {
     grid.innerHTML = forecastDays.map(f => {
         const date = new Date(f.date_epoch * 1000);
         const day = date.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US', { weekday: 'short', day: 'numeric', month: 'numeric' });
-        const temp = Math.round(f.day.avgtemp_c);
-        const icon = 'https:' + f.day.condition.icon;
 
         return `
             <div class="forecast-item">
                 <div class="forecast-date">${day}</div>
-                <img src="${icon}" width="40" height="40">
-                <div class="forecast-temp">${temp}°C</div>
+                <img src="${f.icon}" width="40" height="40">
+                <div class="forecast-temp">${f.temp}°C</div>
             </div>
         `;
     }).join('');
@@ -1381,8 +1526,16 @@ function drawSpendingChart() {
 // --- Settings & Utils Logic ---
 function initSettings() {
     document.getElementById('emergency-info').value = emergencyInfo;
-    const apiKeyInput = document.getElementById('weather-api-key-input');
-    if (apiKeyInput) apiKeyInput.value = weatherApiKey;
+    const wapiKeyInput = document.getElementById('weatherapi-key-input');
+    if (wapiKeyInput) wapiKeyInput.value = weatherapi_key;
+    const oapiKeyInput = document.getElementById('owm-api-key-input');
+    if (oapiKeyInput) oapiKeyInput.value = openweather_key;
+    const providerSelect = document.getElementById('weather-provider-select');
+    if (providerSelect) {
+        providerSelect.value = weatherProvider;
+        document.getElementById('weatherapi-key-container').style.display = weatherProvider === 'weatherapi' ? 'flex' : 'none';
+        document.getElementById('openweathermap-key-container').style.display = weatherProvider === 'openweathermap' ? 'flex' : 'none';
+    }
     const notifyToggle = document.getElementById('notify-motion-toggle');
     if (notifyToggle) notifyToggle.checked = motionNotifyEnabled;
     const keepToggle = document.getElementById('keep-alive-toggle');
