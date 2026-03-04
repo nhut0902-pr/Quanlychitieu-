@@ -522,6 +522,71 @@ input:checked + .slider:before {
     font-weight: 700;
 }
 
+/* Weather Styles */
+.weather-display-card {
+    background: linear-gradient(135deg, var(--primary), #818cf8);
+    color: white;
+    padding: 24px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    display: none;
+}
+
+.weather-temp {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.weather-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 16px;
+    border-radius: 15px;
+}
+
+.weather-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 13px;
+}
+
+.weather-forecast-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.forecast-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 16px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+}
+
+.forecast-date {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.forecast-temp {
+    font-weight: 800;
+    color: var(--primary);
+}
+
 .modal-actions {
     display: flex;
     gap: 10px;

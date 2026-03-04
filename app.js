@@ -14,6 +14,7 @@ const translations = {
     vi: {
         nav_diary: "Nhật Ký",
         nav_itinerary: "Lịch Trình",
+        nav_weather: "Thời Tiết",
         nav_spending: "Chi Tiêu",
         nav_map: "Bản Đồ",
         nav_trips: "Chuyến Đi",
@@ -107,11 +108,21 @@ const translations = {
         update_notice: "Có bản cập nhật mới (1.2.1)!",
         manual_content: "• Nhật ký: Ghi lại hành trình, ảnh và đánh giá.<br>• Lịch trình: Lên kế hoạch thời gian cho chuyến đi.<br>• Chi tiêu: Quản lý ngân sách và xem biểu đồ.<br>• Bản đồ: Đánh dấu GPS và theo dõi tốc độ (hỗ trợ PiP).<br>• Xuất PDF: Tạo báo cáo đẹp mắt để lưu niệm.",
         terms_content: "Dữ liệu của bạn được lưu hoàn toàn trên thiết bị (Offline). Chúng tôi không thu thập bất kỳ thông tin nào. Sử dụng GPS chỉ phục vụ mục đích đánh dấu vị trí và đo tốc độ trong ứng dụng.",
-        updates_content: "<b>Phiên bản 1.2.1</b><br><br>Tính năng mới:<br>• Thêm tính năng Lịch Trình chuyến đi.<br>• Thêm hướng dẫn sử dụng & điều khoản.<br>• Cải thiện giao diện xuất PDF.<br><br>Lỗi đã sửa:<br>• Fix lỗi xem trước PDF bị hiển thị 1 nửa trên mobile.<br>• Tối ưu hiệu suất chạy ngầm."
+        updates_content: "<b>Phiên bản 1.2.1</b><br><br>Tính năng mới:<br>• Thêm tính năng Tra cứu thời tiết.<br>• Thêm tính năng Lịch Trình chuyến đi.<br>• Thêm hướng dẫn sử dụng & điều khoản.<br>• Cải thiện giao diện xuất PDF.<br><br>Lỗi đã sửa:<br>• Fix lỗi xem trước PDF bị hiển thị 1 nửa trên mobile.<br>• Tối ưu hiệu suất chạy ngầm.",
+        weather_title: "Dự Báo Thời Tiết",
+        weather_search_placeholder: "Nhập tên thành phố...",
+        weather_loading: "Đang lấy dữ liệu...",
+        weather_error: "Lỗi kết nối hoặc không tìm thấy địa điểm.",
+        weather_offline_msg: "Thông tin thời tiết cần kết nối mạng để cập nhật.",
+        weather_feels_like: "Cảm giác như",
+        weather_humidity: "Độ ẩm",
+        weather_wind: "Gió",
+        weather_get_current: "Lấy thời tiết tại đây"
     },
     en: {
         nav_diary: "Diary",
         nav_itinerary: "Itinerary",
+        nav_weather: "Weather",
         nav_spending: "Spending",
         nav_map: "Map",
         nav_trips: "Trips",
@@ -205,7 +216,16 @@ const translations = {
         update_notice: "New update available (1.2.1)!",
         manual_content: "• Diary: Log journey, photos and ratings.<br>• Itinerary: Plan your trip schedule.<br>• Spending: Manage budget and view charts.<br>• Map: Mark GPS points and track speed (PiP supported).<br>• Export PDF: Create beautiful reports for memories.",
         terms_content: "Your data is stored entirely on your device (Offline). We do not collect any information. GPS usage is only for marking locations and speed tracking within the app.",
-        updates_content: "<b>Version 1.2.1</b><br><br>New Features:<br>• Added Trip Itinerary feature.<br>• Added manual and terms sections.<br>• Improved PDF export interface.<br><br>Bug Fixes:<br>• Fixed PDF preview clipped issue on mobile.<br>• Optimized background performance."
+        updates_content: "<b>Version 1.2.1</b><br><br>New Features:<br>• Added Weather Forecast feature.<br>• Added Trip Itinerary feature.<br>• Added manual and terms sections.<br>• Improved PDF export interface.<br><br>Bug Fixes:<br>• Fixed PDF preview clipped issue on mobile.<br>• Optimized background performance.",
+        weather_title: "Weather Forecast",
+        weather_search_placeholder: "Enter city name...",
+        weather_loading: "Loading weather...",
+        weather_error: "Connection error or location not found.",
+        weather_offline_msg: "Weather updates require internet connection.",
+        weather_feels_like: "Feels like",
+        weather_humidity: "Humidity",
+        weather_wind: "Wind",
+        weather_get_current: "Get current location weather"
     }
 };
 
@@ -339,7 +359,8 @@ function updateLanguage() {
         'spend-item': 'item_placeholder',
         'spend-amount': 'price_placeholder',
         'checklist-item': 'checklist_placeholder',
-        'emergency-info': 'emergency_placeholder'
+        'emergency-info': 'emergency_placeholder',
+        'weather-search': 'weather_search_placeholder'
     };
 
     for (let id in placeholders) {
@@ -660,6 +681,7 @@ function showSection(section) {
 
     if (section === 'diary') initDiary();
     if (section === 'itinerary') initItinerary();
+    if (section === 'weather') initWeather();
     if (section === 'spending') initSpending();
     if (section === 'trips') initTrips();
     if (section === 'settings') initSettings();
@@ -1007,6 +1029,153 @@ function deleteItinerary(id) {
         syncTripData();
         renderItinerary();
     }
+}
+
+// --- Weather Logic ---
+const WEATHER_API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // Free API Key for demo purposes
+
+function initWeather() {
+    const form = document.getElementById('weather-form');
+    if (form) {
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            const city = document.getElementById('weather-search').value;
+            fetchWeatherByCity(city);
+        };
+    }
+
+    // Auto-fetch current location weather if possible
+    if (currentLocation) {
+        fetchWeather(currentLocation[0], currentLocation[1]);
+    }
+}
+
+async function fetchWeather(lat, lon) {
+    updateWeatherMsg(translations[currentLang].weather_loading);
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric&lang=${currentLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.cod === 200) {
+            renderWeather(data);
+            fetchForecast(lat, lon);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_error);
+        }
+    } catch (err) {
+        updateWeatherMsg(translations[currentLang].weather_offline_msg);
+    }
+}
+
+async function fetchWeatherByCity(city) {
+    updateWeatherMsg(translations[currentLang].weather_loading);
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${WEATHER_API_KEY}&units=metric&lang=${currentLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.cod === 200) {
+            renderWeather(data);
+            fetchForecast(data.coord.lat, data.coord.lon);
+        } else {
+            updateWeatherMsg(translations[currentLang].weather_error);
+        }
+    } catch (err) {
+        updateWeatherMsg(translations[currentLang].weather_offline_msg);
+    }
+}
+
+async function fetchForecast(lat, lon) {
+    try {
+        const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric&lang=${currentLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.cod === "200") {
+            renderForecast(data);
+        }
+    } catch (err) {
+        console.error("Forecast Error:", err);
+    }
+}
+
+function getWeatherAtCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            fetchWeather(pos.coords.latitude, pos.coords.longitude);
+        });
+    }
+}
+
+function updateWeatherMsg(msg) {
+    const el = document.getElementById('weather-msg');
+    const display = document.getElementById('weather-display');
+    if (el) {
+        el.innerText = msg;
+        el.style.display = 'block';
+    }
+    if (display) display.style.display = 'none';
+}
+
+function renderWeather(data) {
+    const display = document.getElementById('weather-display');
+    const msg = document.getElementById('weather-msg');
+    if (!display) return;
+
+    msg.style.display = 'none';
+    display.style.display = 'block';
+
+    const icon = data.weather[0].icon;
+    const desc = data.weather[0].description;
+    const temp = Math.round(data.main.temp);
+    const feels = Math.round(data.main.feels_like);
+
+    display.innerHTML = `
+        <div style="font-size:18px; font-weight:700; margin-bottom:4px;">${data.name}, ${data.sys.country}</div>
+        <div style="text-transform: capitalize; opacity: 0.9; font-size:14px;">${desc}</div>
+        <div class="weather-temp">
+            <img src="https://openweathermap.org/img/wn/${icon}@2x.png" width="80" height="80">
+            <span>${temp}°C</span>
+        </div>
+        <div class="weather-details">
+            <div class="weather-detail-item">
+                <span style="opacity:0.7;">${translations[currentLang].weather_feels_like}</span>
+                <strong>${feels}°C</strong>
+            </div>
+            <div class="weather-detail-item">
+                <span style="opacity:0.7;">${translations[currentLang].weather_humidity}</span>
+                <strong>${data.main.humidity}%</strong>
+            </div>
+            <div class="weather-detail-item">
+                <span style="opacity:0.7;">${translations[currentLang].weather_wind}</span>
+                <strong>${data.wind.speed}m/s</strong>
+            </div>
+        </div>
+    `;
+}
+
+function renderForecast(data) {
+    const grid = document.getElementById('weather-forecast');
+    if (!grid) return;
+
+    // Filter to get 1 forecast per day (around midday)
+    const daily = data.list.filter(f => f.dt_txt.includes('12:00:00')).slice(0, 4);
+
+    grid.innerHTML = daily.map(f => {
+        const date = new Date(f.dt * 1000);
+        const day = date.toLocaleDateString(currentLang === 'vi' ? 'vi-VN' : 'en-US', { weekday: 'short', day: 'numeric', month: 'numeric' });
+        const temp = Math.round(f.main.temp);
+        const icon = f.weather[0].icon;
+
+        return `
+            <div class="forecast-item">
+                <div class="forecast-date">${day}</div>
+                <img src="https://openweathermap.org/img/wn/${icon}.png" width="40" height="40">
+                <div class="forecast-temp">${temp}°C</div>
+            </div>
+        `;
+    }).join('');
 }
 
 // --- Spending Logic ---
