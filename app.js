@@ -127,7 +127,26 @@ const translations = {
         weather_api_key_label: "Mã WeatherAPI.com (Key):",
         weather_provider: "Dịch vụ thời tiết:",
         owm_api_key_label: "Mã OpenWeatherMap (Key):",
-        weather_map_hint: "Chọn vị trí trên bản đồ để xem thời tiết:"
+        weather_map_hint: "Chọn vị trí trên bản đồ để xem thời tiết:",
+        nav_games: "Trò Chơi",
+        games_title: "Giải Trí & Game",
+        game_tank_desc: "Chiến đấu xe tăng 3D cực đỉnh",
+        game_caro_desc: "Đấu trí với Bot hoặc bạn bè",
+        game_snake_desc: "Game kinh điển mọi thời đại",
+        game_tetris_desc: "Sắp xếp các khối gạch",
+        game_mines_desc: "Thử thách trí nhớ và suy luận",
+        game_2048_desc: "Ghép các ô số",
+        game_sudoku_desc: "Giải đố các con số",
+        game_bird_desc: "Bay qua các chướng ngại vật",
+        game_memory_desc: "Tìm cặp hình giống nhau",
+        game_whack_desc: "Phản xạ nhanh tay lẹ mắt",
+        game_pong_desc: "Đánh bóng cổ điển",
+        open_shop: "Cửa Hàng Vật Phẩm",
+        shop_title: "Cửa Hàng Trip Coins",
+        shop_tab_tanks: "Xe Tăng",
+        shop_tab_skins: "Trang Phục",
+        shop_tab_boosts: "Hỗ Trợ",
+        close_btn: "Đóng"
     },
     en: {
         nav_diary: "Diary",
@@ -245,7 +264,26 @@ const translations = {
         weather_api_key_label: "WeatherAPI.com Key:",
         weather_provider: "Weather Provider:",
         owm_api_key_label: "OpenWeatherMap Key:",
-        weather_map_hint: "Select a location on the map to see weather:"
+        weather_map_hint: "Select a location on the map to see weather:",
+        nav_games: "Games",
+        games_title: "Fun & Games",
+        game_tank_desc: "Epic 3D Tank Battle",
+        game_caro_desc: "Strategy against Bot or Friend",
+        game_snake_desc: "The all-time classic",
+        game_tetris_desc: "Stack the bricks",
+        game_mines_desc: "Memory & Logic challenge",
+        game_2048_desc: "Merge the numbers",
+        game_sudoku_desc: "Number puzzles",
+        game_bird_desc: "Fly through obstacles",
+        game_memory_desc: "Find matching pairs",
+        game_whack_desc: "Fast reflex test",
+        game_pong_desc: "Classic table tennis",
+        open_shop: "Game Shop",
+        shop_title: "Trip Coins Shop",
+        shop_tab_tanks: "Tanks",
+        shop_tab_skins: "Skins",
+        shop_tab_boosts: "Boosts",
+        close_btn: "Close"
     }
 };
 
@@ -682,6 +720,7 @@ function updateThemeIcon() {
 
 function showSection(section) {
     currentSection = section;
+    if (window.gameActive) closeGame();
     const content = document.getElementById('content');
     const template = document.getElementById(`${section}-template`);
     if (!template) return;
@@ -707,6 +746,7 @@ function showSection(section) {
     if (section === 'spending') initSpending();
     if (section === 'trips') initTrips();
     if (section === 'settings') initSettings();
+    if (section === 'games') initGamesHub();
 
     updateLanguage();
 
@@ -821,6 +861,7 @@ function initDiary() {
         diaries.push(entry);
         syncTripData();
         renderDiaries();
+        if (window.addTripCoins) window.addTripCoins(50);
         e.target.reset();
         document.getElementById('diary-coords').value = '';
         document.getElementById('photo-preview').innerHTML = '';
@@ -1577,6 +1618,7 @@ function toggleCheckItem(id) {
     const item = checklist.find(i => i.id === id);
     if (item) {
         item.done = !item.done;
+        if (item.done && window.addTripCoins) window.addTripCoins(10);
         syncTripData();
         renderChecklist();
     }
@@ -2168,6 +2210,7 @@ function markCurrentLocation(type) {
     navigator.geolocation.getCurrentPosition(pos => {
         const { latitude, longitude } = pos.coords;
         savedMarkers[type] = { lat: latitude, lng: longitude };
+        if (window.addTripCoins) window.addTripCoins(20);
         syncTripData();
         addMarkerToMap(latitude, longitude, type);
         updateMapLines();

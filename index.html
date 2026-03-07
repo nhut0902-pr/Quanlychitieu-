@@ -53,6 +53,10 @@
                 <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,16A1.5,1.5 0 1,1 8,14.5A1.5,1.5 0 0,1 6.5,16M17.5,16A1.5,1.5 0 1,1 19,14.5A1.5,1.5 0 0,1 17.5,16M5,11L6.5,6.5H17.5L19,11H5Z"/></svg>
                 <span data-i18n="nav_trips">Chuyến Đi</span>
             </button>
+            <button onclick="showSection('games')" id="nav-games">
+                <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M21,6H3C1.89,6 1,6.89 1,8V18A2,2 0 0,0 3,20H21A2,2 0 0,0 23,18V8C23,6.89 22.1,6 21,6M15,11A1,1 0 0,1 16,10A1,1 0 0,1 17,11A1,1 0 0,1 16,12A1,1 0 0,1 15,11M17,14A1,1 0 0,1 18,13A1,1 0 0,1 19,14A1,1 0 0,1 18,15A1,1 0 0,1 17,14M19,11A1,1 0 0,1 20,10A1,1 0 0,1 21,11A1,1 0 0,1 20,12A1,1 0 0,1 19,11M11,11V13H13V15H11V17H9V15H7V13H9V11H11Z"/></svg>
+                <span data-i18n="nav_games">Trò Chơi</span>
+            </button>
             <button onclick="showSection('settings')" id="nav-settings">
                 <svg viewBox="0 0 24 24" class="nav-icon"><path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.35 19.43,11.03L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.1L14.48,2.45C14.43,2.21 14.22,2 14,2H10C9.78,2 9.57,2.21 9.52,2.45L9.14,5.1C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11.03C4.53,11.35 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.34 8.53,18.66 9.14,18.9L9.52,21.55C9.57,21.79 9.78,22 10,22H14C14.22,22 14.43,21.79 14.48,21.55L14.86,18.9C15.47,18.66 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/></svg>
                 <span data-i18n="nav_settings">Cài Đặt</span>
@@ -440,6 +444,144 @@
         </section>
     </template>
 
+    <template id="games-template">
+        <section id="games-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2 data-i18n="games_title">Giải Trí & Game</h2>
+                <div id="trip-coins-display" class="coins-badge">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="#f59e0b"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,17V16H9V14H13V13H10A2,2 0 0,1 8,11V9A2,2 0 0,1 10,7H11V6H13V7H15V9H11V10H14A2,2 0 0,1 16,12V14A2,2 0 0,1 14,16H13V17H11Z"/></svg>
+                    <span id="trip-coins-val">0</span>
+                </div>
+            </div>
+
+            <div class="games-grid">
+                <div class="game-card" onclick="launchGame('tank3d')">
+                    <div class="game-icon tank-icon">🚀</div>
+                    <div class="game-info">
+                        <h3>Tank 3D</h3>
+                        <p data-i18n="game_tank_desc">Chiến đấu xe tăng 3D cực đỉnh</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('caro')">
+                    <div class="game-icon caro-icon">⭕</div>
+                    <div class="game-info">
+                        <h3>Cờ Caro</h3>
+                        <p data-i18n="game_caro_desc">Đấu trí với Bot hoặc bạn bè</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('snake')">
+                    <div class="game-icon snake-icon">🐍</div>
+                    <div class="game-info">
+                        <h3>Rắn Săn Mồi</h3>
+                        <p data-i18n="game_snake_desc">Game kinh điển mọi thời đại</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('tetris')">
+                    <div class="game-icon tetris-icon">🧱</div>
+                    <div class="game-info">
+                        <h3>Xếp Hình</h3>
+                        <p data-i18n="game_tetris_desc">Sắp xếp các khối gạch</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('minesweeper')">
+                    <div class="game-icon mines-icon">💣</div>
+                    <div class="game-info">
+                        <h3>Dò Mìn</h3>
+                        <p data-i18n="game_mines_desc">Thử thách trí nhớ và suy luận</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('2048')">
+                    <div class="game-icon tile-icon">2048</div>
+                    <div class="game-info">
+                        <h3>2048</h3>
+                        <p data-i18n="game_2048_desc">Ghép các ô số</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('sudoku')">
+                    <div class="game-icon sudoku-icon">9️⃣</div>
+                    <div class="game-info">
+                        <h3>Sudoku</h3>
+                        <p data-i18n="game_sudoku_desc">Giải đố các con số</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('bird')">
+                    <div class="game-icon bird-icon">🐦</div>
+                    <div class="game-info">
+                        <h3>Flappy Trip</h3>
+                        <p data-i18n="game_bird_desc">Bay qua các chướng ngại vật</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('memory')">
+                    <div class="game-icon mem-icon">🃏</div>
+                    <div class="game-info">
+                        <h3>Trí Nhớ</h3>
+                        <p data-i18n="game_memory_desc">Tìm cặp hình giống nhau</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('whack')">
+                    <div class="game-icon whack-icon">🔨</div>
+                    <div class="game-info">
+                        <h3>Đập Chuột</h3>
+                        <p data-i18n="game_whack_desc">Phản xạ nhanh tay lẹ mắt</p>
+                    </div>
+                </div>
+                <div class="game-card" onclick="launchGame('pong')">
+                    <div class="game-icon pong-icon">🏓</div>
+                    <div class="game-info">
+                        <h3>Bóng Bàn</h3>
+                        <p data-i18n="game_pong_desc">Đánh bóng cổ điển</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="showGameShop()" class="shop-btn-main">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12,18H6V14H12M21,14V12L20,7H4L3,12V14H4V20H14V14H18V20H20V14M20,4H4V6H20V4Z"/></svg>
+                <span data-i18n="open_shop">Cửa Hàng Vật Phẩm</span>
+            </button>
+        </section>
+    </template>
+
+    <!-- Game Viewport Modal -->
+    <div id="game-modal" class="modal" style="display:none; z-index: 10001;">
+        <div class="game-modal-content">
+            <div class="game-header">
+                <h3 id="game-title">Game Name</h3>
+                <button onclick="closeGame()" class="close-game-btn">✕</button>
+            </div>
+            <div id="game-container">
+                <!-- Game Canvas/Content will be here -->
+            </div>
+            <div id="game-controls-overlay" style="display:none;">
+                <!-- Joysticks/Buttons for mobile -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Shop Modal -->
+    <div id="shop-modal" class="modal" style="display:none; z-index: 10002;">
+        <div class="modal-content shop-modal-wide">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 data-i18n="shop_title">Cửa Hàng Trip Coins</h3>
+                <div class="coins-badge large">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="#f59e0b"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4M11,17V16H9V14H13V13H10A2,2 0 0,1 8,11V9A2,2 0 0,1 10,7H11V6H13V7H15V9H11V10H14A2,2 0 0,1 16,12V14A2,2 0 0,1 14,16H13V17H11Z"/></svg>
+                    <span id="shop-coins-val">0</span>
+                </div>
+            </div>
+
+            <div class="shop-tabs">
+                <button class="shop-tab active" onclick="switchShopTab('tanks')" data-i18n="shop_tab_tanks">Xe Tăng</button>
+                <button class="shop-tab" onclick="switchShopTab('skins')" data-i18n="shop_tab_skins">Trang Phục</button>
+                <button class="shop-tab" onclick="switchShopTab('boosts')" data-i18n="shop_tab_boosts">Hỗ Trợ</button>
+            </div>
+
+            <div id="shop-items-grid" class="items-grid">
+                <!-- Shop items injected here -->
+            </div>
+
+            <button onclick="closeShop()" style="width:100%; margin-top:20px; background:var(--secondary);" data-i18n="close_btn">Đóng</button>
+        </div>
+    </div>
+
     <template id="map-template">
         <section id="map-section">
             <h2 id="current-trip-title-map" data-i18n="map_title">Bản Đồ Hành Trình</h2>
@@ -480,6 +622,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="app.js"></script>
+    <script src="games.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
