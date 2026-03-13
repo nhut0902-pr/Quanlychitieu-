@@ -877,3 +877,85 @@ input:checked + .slider:before {
     z-index: 100;
     touch-action: none;
 }
+
+/* Online/WebRTC Styles */
+#online-call-ui {
+    position: absolute;
+    top: 60px;
+    right: 15px;
+    width: 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 100;
+}
+
+.video-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+}
+
+.video-wrapper video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.video-wrapper span {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.call-actions {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+}
+
+.call-actions button {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 16px;
+}
+
+.id-container {
+    background: var(--bg-body);
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.id-container label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+}
+
+.game-card.online-game {
+    border: 1.5px dashed var(--primary);
+}
+
+.online-icon {
+    background: rgba(59, 130, 246, 0.1);
+}

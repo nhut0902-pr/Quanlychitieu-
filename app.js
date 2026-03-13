@@ -146,7 +146,12 @@ const translations = {
         shop_tab_tanks: "Xe Tăng",
         shop_tab_skins: "Trang Phục",
         shop_tab_boosts: "Hỗ Trợ",
-        close_btn: "Đóng"
+        close_btn: "Đóng",
+        webrtc_connect_title: "Kết nối trực tuyến",
+        your_id: "ID của bạn:",
+        peer_id: "ID đối phương:",
+        connect_btn: "Kết Nối",
+        game_online_desc: "Gọi video & chơi cùng bạn bè"
     },
     en: {
         nav_diary: "Diary",
@@ -283,7 +288,12 @@ const translations = {
         shop_tab_tanks: "Tanks",
         shop_tab_skins: "Skins",
         shop_tab_boosts: "Boosts",
-        close_btn: "Close"
+        close_btn: "Close",
+        webrtc_connect_title: "Online Connection",
+        your_id: "Your ID:",
+        peer_id: "Peer ID:",
+        connect_btn: "Connect",
+        game_online_desc: "Video call & play with friends"
     }
 };
 

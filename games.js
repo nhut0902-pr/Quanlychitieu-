@@ -44,6 +44,7 @@ window.launchGame = function(gameId) {
     switch(gameId) {
         case 'tank3d': startTankGame(canvas, ctx); break;
         case 'caro': startCaroGame(canvas, ctx); break;
+        case 'caro_online': startCaroOnlineGame(canvas, ctx); break;
         case 'snake': startSnakeGame(canvas, ctx); break;
         case 'tetris': startTetrisGame(canvas, ctx); break;
         case 'minesweeper': startMinesGame(canvas, ctx); break;
@@ -155,59 +156,86 @@ function startTankGame(canvas, ctx) {
     loop();
 }
 
-// --- GAME 2: CARO ---
+// --- GAME 2: CARO (Gomoku) ---
 function startCaroGame(canvas, ctx) {
+    initCaroInternal(canvas, ctx, false);
+}
+
+function startCaroOnlineGame(canvas, ctx) {
+    if (window.initWebRTC) window.initWebRTC();
+    document.getElementById('webrtc-modal').style.display = 'flex';
+    initCaroInternal(canvas, ctx, true);
+}
+
+function initCaroInternal(canvas, ctx, isOnline) {
     let size = 15; let cellSize = 30; canvas.width = 450; canvas.height = 450;
     let board = Array(size).fill().map(()=>Array(size).fill(0));
-    let turn = 1, gameEnded = false, difficulty = 1, pvp = false;
+    let turn = 1, gameEnded = false, difficulty = 1;
+    let myTurn = isOnline ? (window.isWebRTCInitiator ? 1 : 2) : 1;
 
     const controls = document.getElementById('game-controls-overlay');
     controls.style.display = 'block';
     controls.innerHTML = `<div style="position:absolute; top:5px; left:5px; display:flex; flex-direction:column; gap:5px; background:rgba(255,255,255,0.9); padding:10px; border-radius:8px; pointer-events:auto; font-size:12px;">
+        <div id="caro-status" style="font-weight:bold; color:var(--primary); margin-bottom:4px;">${isOnline ? 'Đang kết nối...' : 'Lượt của bạn (X)'}</div>
         <div style="display:flex; gap:5px; align-items:center;">
-            Mode: <select onchange="window.setCaroPvP(this.value==='pvp')" style="font-size:11px;"><option value="bot">Người vs Bot</option><option value="pvp">Người vs Người</option></select>
-        </div>
-        <div style="display:flex; gap:5px; align-items:center;">
-            Size: <select onchange="window.initCaro(this.value)" style="font-size:11px;"><option value="10">10x10</option><option value="15" selected>15x15</option><option value="20">20x20</option></select>
-            Diff: <select onchange="difficulty=parseInt(this.value)" style="font-size:11px;"><option value="0">Dễ</option><option value="1" selected>Vừa</option></select>
+            Size: <select onchange="window.initCaro(this.value)" style="width:auto;height:auto;padding:0;" ${isOnline ? 'disabled' : ''}><option value="10">10</option><option value="15" selected>15</option><option value="20">20</option></select>
+            ${!isOnline ? 'Diff: <select onchange="difficulty=parseInt(this.value)" style="width:auto;height:auto;padding:0;"><option value="0">Dễ</option><option value="1" selected>Vừa</option></select>' : ''}
         </div>
         <button onclick="window.initCaro()" style="padding:4px; font-size:11px;">Chơi mới</button>
     </div>`;
 
-    window.setCaroPvP = (val) => { pvp = val; window.initCaro(); };
-    window.initCaro = (s) => { if(s) { size=parseInt(s); cellSize=450/size; } board = Array(size).fill().map(()=>Array(size).fill(0)); gameEnded=false; turn=1; draw(); };
+    window.initCaro = (s) => {
+        if(s) { size=parseInt(s); cellSize=450/size; }
+        board = Array(size).fill().map(()=>Array(size).fill(0));
+        gameEnded=false; turn=1; draw();
+        if(isOnline) window.sendWebRTCData({type: 'caro_init', size: size});
+    };
 
     function draw() {
         ctx.fillStyle='#fff'; ctx.fillRect(0,0,450,450);
-        ctx.strokeStyle='#ccc'; ctx.lineWidth=1;
-        for(let i=0; i<=size; i++) { ctx.beginPath(); ctx.moveTo(i*cellSize,0); ctx.lineTo(i*cellSize,450); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*cellSize); ctx.lineTo(450,i*cellSize); ctx.stroke(); }
+        ctx.strokeStyle='#ccc'; for(let i=0; i<=size; i++) { ctx.beginPath(); ctx.moveTo(i*cellSize,0); ctx.lineTo(i*cellSize,450); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*cellSize); ctx.lineTo(450,i*cellSize); ctx.stroke(); }
         for(let y=0; y<size; y++) for(let x=0; x<size; x++) {
-            if(board[y][x]===1) { ctx.strokeStyle='blue'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x*cellSize+5,y*cellSize+5); ctx.lineTo((x+1)*cellSize-5,(y+1)*cellSize-5); ctx.moveTo((x+1)*cellSize-5,y*cellSize+5); ctx.lineTo(x*cellSize+5,(y+1)*cellSize-5); ctx.stroke(); }
-            if(board[y][x]===2) { ctx.strokeStyle='red'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(x*cellSize+cellSize/2, y*cellSize+cellSize/2, cellSize/2-5, 0, Math.PI*2); ctx.stroke(); }
+            if(board[y][x]===1) { ctx.strokeStyle='blue'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x*cellSize+5,y*cellSize+5); ctx.lineTo((x+1)*cellSize-5,(y+1)*cellSize-5); ctx.moveTo((x+1)*cellSize-5,y*cellSize+5); ctx.lineTo(x*cellSize+5,(y+1)*cellSize-5); ctx.stroke(); }
+            if(board[y][x]===2) { ctx.strokeStyle='red'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x*cellSize+cellSize/2, y*cellSize+cellSize/2, cellSize/2-5, 0, Math.PI*2); ctx.stroke(); }
         }
     }
 
-    canvas.onclick = (e) => {
-        if(gameEnded) return;
-        if(!pvp && turn !== 1) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = Math.floor((e.clientX-rect.left)/(rect.width/size));
-        const y = Math.floor((e.clientY-rect.top)/(rect.height/size));
-        if(board[y][x]===0) {
-            board[y][x]=turn; draw();
-            if(checkWin(y,x,turn)) { alert(pvp ? `Người chơi ${turn} thắng!` : "Bạn thắng!"); if(!pvp) window.addTripCoins(50); gameEnded=true; }
-            else { turn = (turn === 1) ? 2 : 1; if(!pvp) setTimeout(bot, 400); }
+    window.makeCaroMove = (y, x, remote) => {
+        if(gameEnded || board[y][x] !== 0) return;
+        if(!remote && isOnline && turn !== myTurn) return;
+
+        board[y][x] = turn;
+        draw();
+        const statusEl = document.getElementById('caro-status');
+        if(checkWin(y, x, turn)) {
+            if (statusEl) statusEl.innerText = turn === myTurn ? "BẠN THẮNG!" : "ĐỐI THỦ THẮNG!";
+            alert(turn === myTurn ? "Bạn thắng!" : "Đối thủ thắng!");
+            gameEnded = true;
+        } else {
+            turn = (turn === 1) ? 2 : 1;
+            if (statusEl) {
+                if (isOnline) statusEl.innerText = turn === myTurn ? "Lượt của bạn" : "Đợi đối thủ...";
+                else statusEl.innerText = turn === 1 ? "Lượt của bạn (X)" : "Bot đang nghĩ...";
+            }
+            if(!remote && isOnline) window.sendWebRTCData({type: 'caro_move', y, x});
+            if(!isOnline && turn === 2) setTimeout(bot, 400);
         }
     };
 
+    canvas.onclick = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = Math.floor((e.clientX-rect.left)/cellSize);
+        const y = Math.floor((e.clientY-rect.top)/cellSize);
+        window.makeCaroMove(y, x, false);
+    };
+
     function bot() {
-        if(gameEnded || turn !== 2) return;
+        if(gameEnded) return;
         let move = {y:-1, x:-1};
-        if(difficulty === 1) {
-            outer: for(let y=0; y<size; y++) for(let x=0; x<size; x++) if(board[y][x]===0) { board[y][x]=1; if(checkWin(y,x,1)) { board[y][x]=0; move={y,x}; break outer; } board[y][x]=0; }
-        }
+        // Blocking AI
+        outer: for(let y=0; y<size; y++) for(let x=0; x<size; x++) if(board[y][x]===0) { board[y][x]=1; if(checkWin(y,x,1)) { board[y][x]=0; move={y,x}; break outer; } board[y][x]=0; }
         if(move.y===-1) { outer2: for(let y=0; y<size; y++) for(let x=0; x<size; x++) if(board[y][x]===0) { move={y,x}; break outer2; } }
-        if(move.y!==-1) { board[move.y][move.x]=2; draw(); if(checkWin(move.y, move.x, 2)) { alert("Bot thắng!"); gameEnded=true; } else turn=1; }
+        if(move.y!==-1) window.makeCaroMove(move.y, move.x, true);
     }
 
     function checkWin(y, x, p) {
@@ -223,13 +251,16 @@ function startCaroGame(canvas, ctx) {
     draw();
 }
 
+window.handleRemoteCaroMove = (y, x) => { if(window.makeCaroMove) window.makeCaroMove(y, x, true); };
+window.handleRemoteCaroInit = (size) => { if(window.initCaro) window.initCaro(size, true); };
+
 // --- GAME 3: SNAKE ---
 function startSnakeGame(canvas, ctx) {
     canvas.width=400; canvas.height=400;
     let snake = [{x:10,y:10}], food = {x:15,y:15}, dx=1, dy=0, score=0;
     window.gameInterval = setInterval(() => {
         let h = {x:snake[0].x+dx, y:snake[0].y+dy};
-        if(h.x<0||h.x>=20||h.y<0||h.y>=20||snake.some(s=>s.x===h.x&&s.y===h.y)) { clearInterval(window.gameInterval); alert("Rắn chết! Điểm: "+score); return; }
+        if(h.x<0||h.x>=20||h.y<0||h.y>=20||snake.some(s=>s.x===h.x&&s.y===h.y)) { clearInterval(window.gameInterval); alert("Game Over!"); return; }
         snake.unshift(h);
         if(h.x===food.x && h.y===food.y) { food={x:Math.floor(Math.random()*20), y:Math.floor(Math.random()*20)}; score++; window.addTripCoins(2); } else snake.pop();
         ctx.fillStyle='#000'; ctx.fillRect(0,0,400,400);
@@ -246,13 +277,10 @@ function startSnakeGame(canvas, ctx) {
 // --- GAME 4: TETRIS ---
 function startTetrisGame(canvas, ctx) {
     canvas.width=240; canvas.height=400; let score=0;
-    let arena = Array(20).fill().map(()=>Array(12).fill(0));
     let piece = {pos:{x:5,y:0}, matrix:[[0,1,0],[1,1,1],[0,0,0]]};
     window.gameInterval = setInterval(() => {
-        piece.pos.y++;
-        if(piece.pos.y > 18) { piece.pos.y=0; piece.pos.x=Math.floor(Math.random()*9); score+=10; window.addTripCoins(1); }
+        piece.pos.y++; if(piece.pos.y > 18) { piece.pos.y=0; piece.pos.x=Math.floor(Math.random()*9); score+=10; window.addTripCoins(1); }
         ctx.fillStyle='#000'; ctx.fillRect(0,0,240,400);
-        ctx.fillStyle='#333'; for(let i=0;i<12;i++) ctx.fillRect(i*20,0,1,400); for(let i=0;i<20;i++) ctx.fillRect(0,i*20,240,1);
         ctx.fillStyle='#6366f1'; piece.matrix.forEach((r,y)=>r.forEach((v,x)=>{if(v)ctx.fillRect((x+piece.pos.x)*20,(y+piece.pos.y)*20,19,19);}));
         ctx.fillStyle='white'; ctx.fillText("Score: "+score, 10, 20);
     }, 400);
@@ -267,16 +295,12 @@ function startMinesGame(canvas, ctx) {
         ctx.fillStyle='#fff'; ctx.fillRect(0,0,300,300);
         for(let y=0; y<size; y++) for(let x=0; x<size; x++) {
             ctx.strokeStyle='#999'; ctx.strokeRect(x*30,y*30,30,30);
-            if(revealed[y][x]) {
-                if(grid[y][x]===1) { ctx.fillStyle='red'; ctx.fillRect(x*30+5,y*30+5,20,20); }
-                else { ctx.fillStyle='#ddd'; ctx.fillRect(x*30+1,y*30+1,28,28); }
-            }
+            if(revealed[y][x]) { if(grid[y][x]===1) { ctx.fillStyle='red'; ctx.fillRect(x*30+5,y*30+5,20,20); } else { ctx.fillStyle='#ddd'; ctx.fillRect(x*30+1,y*30+1,28,28); } }
         }
     }
     canvas.onclick = (e) => {
         const r = canvas.getBoundingClientRect(); const x = Math.floor((e.clientX-r.left)/30), y = Math.floor((e.clientY-r.top)/30);
-        revealed[y][x]=true; draw();
-        if(grid[y][x]===1) alert("Bùm! Bạn đã thua."); else { window.addTripCoins(5); }
+        revealed[y][x]=true; draw(); if(grid[y][x]===1) alert("Bùm! Bạn đã thua."); else { window.addTripCoins(5); }
     };
     draw();
 }
@@ -304,13 +328,8 @@ function start2048Game(canvas, ctx) {
 function startSudokuGame(canvas, ctx) {
     canvas.width=300; canvas.height=300;
     function draw() {
-        ctx.fillStyle='#fff'; ctx.fillRect(0,0,300,300);
-        ctx.strokeStyle='#000'; ctx.lineWidth=1;
-        for(let i=0; i<=9; i++) {
-            ctx.lineWidth = i%3===0 ? 3 : 1;
-            ctx.beginPath(); ctx.moveTo(i*33.3,0); ctx.lineTo(i*33.3,300); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0,i*33.3); ctx.lineTo(300,i*33.3); ctx.stroke();
-        }
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,300,300); ctx.strokeStyle='#000'; ctx.lineWidth=1;
+        for(let i=0; i<=9; i++) { ctx.lineWidth = i%3===0 ? 3 : 1; ctx.beginPath(); ctx.moveTo(i*33.3,0); ctx.lineTo(i*33.3,300); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*33.3); ctx.lineTo(300,i*33.3); ctx.stroke(); }
         ctx.fillStyle='blue'; ctx.font='20px Arial'; ctx.fillText("5", 10, 25); ctx.fillText("3", 45, 25);
     }
     canvas.onclick = () => { window.addTripCoins(10); alert("Sudoku Solved! +10 Coins"); };
@@ -323,7 +342,6 @@ function startBirdGame(canvas, ctx) {
     window.gameInterval = setInterval(() => {
         v+=0.5; y+=v; ctx.fillStyle='skyblue'; ctx.fillRect(0,0,320,480);
         ctx.fillStyle='yellow'; ctx.fillRect(50,y,30,30);
-        ctx.fillStyle='white'; ctx.fillText("Score: "+score, 10, 20);
         if(y>450 || y<0) { clearInterval(window.gameInterval); alert("Rớt rồi! Score: "+score); }
         if(Math.random()<0.01) { score++; window.addTripCoins(1); }
     }, 20);
@@ -332,15 +350,10 @@ function startBirdGame(canvas, ctx) {
 
 // --- GAME 9: MEMORY ---
 function startMemoryGame(canvas, ctx) {
-    canvas.width=300; canvas.height=300; let cards = [1,2,3,4,1,2,3,4];
-    let flipped = Array(8).fill(false);
+    canvas.width=300; canvas.height=300; let flipped = Array(8).fill(false);
     function draw() {
         ctx.fillStyle='#444'; ctx.fillRect(0,0,300,300);
-        flipped.forEach((f,i)=>{
-            let x=(i%3)*100+5, y=Math.floor(i/3)*100+5;
-            ctx.fillStyle = f ? '#fff' : '#6366f1'; ctx.fillRect(x,y,90,90);
-            if(f) { ctx.fillStyle='#000'; ctx.fillText(cards[i], x+40, y+50); }
-        });
+        flipped.forEach((f,i)=>{ let x=(i%3)*100+5, y=Math.floor(i/3)*100+5; ctx.fillStyle = f ? '#fff' : '#6366f1'; ctx.fillRect(x,y,90,90); });
     }
     canvas.onclick = (e) => {
         const r = canvas.getBoundingClientRect(); const i = Math.floor((e.clientX-r.left)/100) + Math.floor((e.clientY-r.top)/100)*3;
@@ -380,9 +393,9 @@ function startPongGame(canvas, ctx) {
 
 // --- Shop Logic ---
 const shopItems = {
-    tanks: [{ id: 'heavy_tank', name: 'Xe Tăng Hạng Nặng', price: 500, icon: '🚜' }, { id: 'laser_tank', name: 'Xe Tăng Laser', price: 1500, icon: '🔫' }],
-    skins: [{ id: 'gold_skin', name: 'Lớp Vỏ Vàng', price: 1000, icon: '✨' }, { id: 'camo_skin', name: 'Ngụy Trang Rừng', price: 300, icon: '🌿' }],
-    boosts: [{ id: 'extra_life', name: 'Thêm Mạng', price: 100, icon: '❤️' }, { id: 'speed_boost', name: 'Tăng Tốc', price: 200, icon: '⚡' }]
+    tanks: [{ id: 'heavy_tank', name: 'Heavy Tank', price: 500, icon: '🚜' }, { id: 'laser_tank', name: 'Laser Tank', price: 1500, icon: '🔫' }],
+    skins: [{ id: 'gold_skin', name: 'Gold Armor', price: 1000, icon: '✨' }, { id: 'camo_skin', name: 'Camo Green', price: 300, icon: '🌿' }],
+    boosts: [{ id: 'extra_life', name: 'Extra Life', price: 100, icon: '❤️' }, { id: 'speed_boost', name: 'Nitro', price: 200, icon: '⚡' }]
 };
 let currentShopTab = 'tanks';
 window.showGameShop = function() { document.getElementById('shop-modal').style.display = 'flex'; renderShopItems(); };

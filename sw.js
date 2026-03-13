@@ -1,10 +1,12 @@
-const CACHE_NAME = 'travel-diary-v18';
+const CACHE_NAME = 'travel-diary-v19';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './games.js',
+  './webrtc.js',
+  'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js',
   './manifest.json',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

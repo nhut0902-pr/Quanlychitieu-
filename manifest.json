@@ -4,7 +4,7 @@
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3f51b5",
+  "theme_color": "#6366f1",
   "description": "Ứng dụng nhật ký chuyến đi và quản lý chi tiêu ngoại tuyến.",
   "icons": [
     {

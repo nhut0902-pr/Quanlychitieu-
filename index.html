@@ -469,6 +469,13 @@
                         <p data-i18n="game_caro_desc">Đấu trí với Bot hoặc bạn bè</p>
                     </div>
                 </div>
+                <div class="game-card online-game" onclick="launchGame('caro_online')">
+                    <div class="game-icon online-icon">🌐</div>
+                    <div class="game-info">
+                        <h3>Caro Online</h3>
+                        <p data-i18n="game_online_desc">Gọi video & chơi cùng bạn bè</p>
+                    </div>
+                </div>
                 <div class="game-card" onclick="launchGame('snake')">
                     <div class="game-icon snake-icon">🐍</div>
                     <div class="game-info">
@@ -554,6 +561,47 @@
             <div id="game-controls-overlay" style="display:none;">
                 <!-- Joysticks/Buttons for mobile -->
             </div>
+
+            <!-- Online Call UI inside Game Modal -->
+            <div id="online-call-ui" style="display:none;">
+                <div class="video-grid">
+                    <div class="video-wrapper">
+                        <video id="local-video" autoplay muted playsinline></video>
+                        <span>Bạn</span>
+                    </div>
+                    <div class="video-wrapper">
+                        <video id="remote-video" autoplay playsinline></video>
+                        <span id="remote-status">Đang đợi...</span>
+                    </div>
+                </div>
+                <div class="call-actions">
+                    <button id="toggle-mic" onclick="toggleMic()">🎤</button>
+                    <button id="toggle-video" onclick="toggleVideo()">📹</button>
+                    <button id="end-call" onclick="endCall()" style="background:#ef4444;">📞</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WebRTC Connection Modal -->
+    <div id="webrtc-modal" class="modal" style="display:none; z-index: 10005;">
+        <div class="modal-content">
+            <h3 data-i18n="webrtc_connect_title">Kết nối trực tuyến</h3>
+            <div class="id-container">
+                <label data-i18n="your_id">ID của bạn:</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="my-peer-id" readonly style="font-family:monospace; font-size:12px;">
+                    <button onclick="copyMyId()" style="width:auto; padding:0 12px;">Copy</button>
+                </div>
+            </div>
+            <div class="id-container" style="margin-top:20px;">
+                <label data-i18n="peer_id">ID đối phương:</label>
+                <input type="text" id="remote-peer-id" placeholder="Dán ID vào đây...">
+            </div>
+            <div class="modal-actions" style="margin-top:24px;">
+                <button onclick="closeWebRTC()" style="background:var(--secondary);" data-i18n="close_btn">Đóng</button>
+                <button onclick="connectToPeer()" data-i18n="connect_btn">Kết Nối</button>
+            </div>
         </div>
     </div>
 
@@ -623,6 +671,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="app.js"></script>
     <script src="games.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="webrtc.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
