@@ -5,11 +5,26 @@ let currentCall = null;
 let localStream = null;
 let isInitiator = false;
 
+function generateShortId(length = 5) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid ambiguous chars
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
 function initPeer() {
     if (peer) return;
 
-    // Create Peer with random ID if not provided
-    peer = new Peer({
+    // Generate a short 5-char ID
+    let myId = localStorage.getItem('peer_id_short');
+    if (!myId) {
+        myId = generateShortId();
+        localStorage.setItem('peer_id_short', myId);
+    }
+
+    peer = new Peer(myId, {
         host: '0.peerjs.com',
         port: 443,
         secure: true,
@@ -22,6 +37,7 @@ function initPeer() {
     });
 
     peer.on('connection', (conn) => {
+        isInitiator = false;
         handleIncomingConnection(conn);
     });
 
@@ -31,8 +47,15 @@ function initPeer() {
 
     peer.on('error', (err) => {
         console.error('Peer error:', err);
-        showToast("Lỗi kết nối: " + err.type, "error");
-        updateWebRTCStatus("Lỗi");
+        if (err.type === 'unavailable-id') {
+            // ID taken, generate new one
+            const newId = generateShortId();
+            localStorage.setItem('peer_id_short', newId);
+            location.reload();
+        } else {
+            showToast("Lỗi kết nối: " + err.type, "error");
+            updateWebRTCStatus("Lỗi");
+        }
     });
 }
 
@@ -53,8 +76,8 @@ function updateWebRTCStatus(status, color) {
     }
 }
 
-function connectToPeer() {
-    const remoteId = document.getElementById('remote-peer-id').value.trim();
+async function connectToPeer() {
+    const remoteId = document.getElementById('remote-peer-id').value.trim().toUpperCase();
     if (!remoteId) {
         showToast("Vui lòng nhập ID đối phương", "info");
         return;
@@ -63,11 +86,12 @@ function connectToPeer() {
     isInitiator = true;
     updateWebRTCStatus("Đang kết nối...");
 
+    // Connect Data Channel
     const conn = peer.connect(remoteId);
     handleIncomingConnection(conn);
 
-    // Also initiate call automatically if user wants video
-    startCall(remoteId);
+    // Connect Video Call
+    await startCall(remoteId);
 }
 
 function handleIncomingConnection(conn) {
@@ -77,7 +101,6 @@ function handleIncomingConnection(conn) {
         showToast("Đã kết nối dữ liệu!", "success");
         updateWebRTCStatus("Đã kết nối", "#10b981");
 
-        // If we are playing caro_online, it might need to sync
         if (currentGame === 'caro_online') {
             launchGame('caro_online');
         }
@@ -89,7 +112,7 @@ function handleIncomingConnection(conn) {
 
     conn.on('close', () => {
         showToast("Kết nối đã đóng", "info");
-        updateWebRTCStatus("Đã ngắt");
+        updateWebRTCStatus("Sẵn sàng");
         dataChannel = null;
     });
 }
@@ -108,10 +131,8 @@ function handleReceivedData(data) {
             }
             break;
         case 'caro_init':
-            // Receiver gets init from Initiator
             if (currentGame === 'caro_online') {
                 caroOnline_size = data.size;
-                // re-init with specific size
                 const container = document.getElementById('game-container');
                 if (container) initCaro(container, true);
             }
@@ -122,20 +143,20 @@ function handleReceivedData(data) {
                 if (container) initCaro(container, true);
             }
             break;
-        case 'chat':
-            showToast("Bạn mới: " + data.msg, "info");
-            break;
     }
 }
 
 async function startCall(remoteId) {
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (!localStream) {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        }
         document.getElementById('local-video').srcObject = localStream;
         document.getElementById('online-call-ui').style.display = 'block';
 
         const call = peer.call(remoteId, localStream);
-        handleIncomingCall(call);
+        currentCall = call;
+        setupCallEvents(call);
     } catch (err) {
         console.error('Failed to get local stream', err);
         showToast("Không thể mở camera/micro", "error");
@@ -145,9 +166,9 @@ async function startCall(remoteId) {
 function handleIncomingCall(call) {
     currentCall = call;
 
-    // If we haven't started local stream yet (receiving end)
+    // If receiver
     if (!localStream) {
-        showInfoModal("Cuộc gọi đến", "Bạn có cuộc gọi video đến. Chấp nhận?", async () => {
+        showInfoModal("Cuộc gọi đến", "Bạn có cuộc gọi video đến từ " + call.peer + ". Chấp nhận?", async () => {
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 document.getElementById('local-video').srcObject = localStream;
@@ -158,8 +179,11 @@ function handleIncomingCall(call) {
                 console.error('Failed to answer call', err);
                 showToast("Lỗi camera", "error");
             }
+        }, () => {
+            call.close();
         });
     } else {
+        // Already have stream (maybe re-connecting)
         call.answer(localStream);
         setupCallEvents(call);
     }
@@ -167,23 +191,35 @@ function handleIncomingCall(call) {
 
 function setupCallEvents(call) {
     call.on('stream', (remoteStream) => {
-        document.getElementById('remote-video').srcObject = remoteStream;
+        const remoteVid = document.getElementById('remote-video');
+        remoteVid.srcObject = remoteStream;
         document.getElementById('remote-status').style.display = 'none';
+        remoteVid.play().catch(e => console.log("Auto-play blocked", e));
     });
 
     call.on('close', () => {
         endCall();
     });
+
+    call.on('error', (err) => {
+        console.error("Call error", err);
+        endCall();
+    });
 }
 
 function endCall() {
-    if (currentCall) currentCall.close();
+    if (currentCall) {
+        currentCall.close();
+        currentCall = null;
+    }
     if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
     }
     document.getElementById('online-call-ui').style.display = 'none';
-    currentCall = null;
-    localStream = null;
+    document.getElementById('local-video').srcObject = null;
+    document.getElementById('remote-video').srcObject = null;
+    document.getElementById('remote-status').style.display = 'block';
     showToast("Cuộc gọi kết thúc", "info");
 }
 
@@ -204,8 +240,8 @@ function toggleVideo() {
 }
 
 function copyMyId() {
-    const idInput = document.getElementById('my-peer-id');
-    idInput.select();
-    document.execCommand('copy');
-    showToast("Đã copy ID!", "success");
+    const idVal = document.getElementById('my-peer-id').value;
+    navigator.clipboard.writeText(idVal).then(() => {
+        showToast("Đã copy ID: " + idVal, "success");
+    });
 }
